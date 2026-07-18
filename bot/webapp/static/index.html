@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Карта дневника</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: -apple-system, system-ui, sans-serif; }
+    #map { position: absolute; inset: 0; }
+    #panel {
+      position: absolute; z-index: 1000; left: 12px; right: 12px; bottom: 12px;
+      background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #111);
+      border-radius: 12px; padding: 10px 14px; box-shadow: 0 2px 12px rgba(0,0,0,.2);
+      font-size: 14px;
+    }
+    #empty {
+      position: absolute; z-index: 1000; inset: 0; display: none;
+      align-items: center; justify-content: center; text-align: center; padding: 24px;
+      color: var(--tg-theme-text-color, #111); background: var(--tg-theme-bg-color, #fff);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="panel">Загрузка ваших точек…</div>
+  <div id="empty">
+    <div>
+      🎣 В дневнике пока нет отчётов.<br />
+      Вернитесь в чат и запишите первую поездку — точка появится на карте.
+    </div>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+    if (tg) { tg.ready(); tg.expand(); }
+
+    const map = L.map('map').setView([55.75, 37.62], 6); // Москва по умолчанию
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18, attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const initData = tg ? tg.initData : '';
+
+    fetch('/api/reports?initData=' + encodeURIComponent(initData))
+      .then(r => r.json())
+      .then(data => {
+        const reports = (data && data.reports) || [];
+        const panel = document.getElementById('panel');
+        if (!reports.length) {
+          document.getElementById('empty').style.display = 'flex';
+          panel.style.display = 'none';
+          return;
+        }
+        const group = [];
+        let caught = 0;
+        reports.forEach(rep => {
+          if (rep.caught) caught++;
+          const color = rep.caught ? '#2e7d32' : '#9e9e9e';
+          const marker = L.circleMarker([rep.lat, rep.lon], {
+            radius: 8, color: color, fillColor: color, fillOpacity: 0.7
+          }).addTo(map);
+          const title = (rep.caught ? '✅ ' + (rep.species || 'Улов') : '▫️ Без улова');
+          marker.bindPopup(
+            '<b>' + title + '</b><br>' + rep.date +
+            (rep.bait ? '<br>на ' + rep.bait : '') +
+            (rep.weather ? '<br>' + rep.weather : '') +
+            (rep.moon ? '<br>' + rep.moon : '')
+          );
+          group.push([rep.lat, rep.lon]);
+        });
+        if (group.length) map.fitBounds(group, { padding: [40, 40], maxZoom: 12 });
+        const pct = Math.round(caught / reports.length * 100);
+        panel.textContent = 'Точек: ' + reports.length + ' · с уловом: ' + pct + '%';
+      })
+      .catch(() => {
+        document.getElementById('panel').textContent = 'Не удалось загрузить точки.';
+      });
+  </script>
+</body>
+</html>
