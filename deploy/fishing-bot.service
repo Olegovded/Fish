@@ -1,0 +1,22 @@
+[Unit]
+# systemd-юнит для круглосуточной работы бота.
+# __APPDIR__ и __USER__ подставляются командой из docs/deploy.md.
+Description=Telegram fishing-bot (Ribakru_bot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__APPDIR__
+# Бот сам читает __APPDIR__/.env (там BOT_TOKEN и BOT_USERNAME).
+ExecStart=__APPDIR__/.venv/bin/python -m bot.main
+Restart=always
+RestartSec=5
+# Немного изоляции — бот пишет только в свою папку (файл БД).
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

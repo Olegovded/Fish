@@ -62,6 +62,10 @@ docs/
 поднимите туннель (например, `cloudflared`/`ngrok`) на `WEB_PORT` и укажите
 его https-адрес в `WEBAPP_URL`.
 
+**Круглосуточная работа на VPS** (systemd, автоперезапуск) — пошаговая
+инструкция в [docs/deploy.md](docs/deploy.md), готовый юнит —
+[deploy/fishing-bot.service](deploy/fishing-bot.service).
+
 ## Стоимость и пути развития
 
 Разбор стоимости на каждого клиента в зависимости от функций и поэтапный
