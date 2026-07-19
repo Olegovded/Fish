@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Рыбаки</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{
     --bg:#eceeec; --surface:#ffffff; --surface-2:#f1f3f0; --ink:#1b2320; --ink-2:#6c7772;
@@ -106,6 +108,16 @@
   .tab.center .fab svg.i{width:26px;height:26px;stroke-width:2.4;}
   .empty{text-align:center;color:var(--ink-2);font-size:14px;padding:22px 10px;}
   .banner{background:var(--record-bg);color:var(--record);font-size:12.5px;font-weight:600;padding:9px 12px;border-radius:10px;margin-bottom:12px;text-align:center;}
+  .zbox{margin-top:12px;border-top:1px solid var(--line);padding-top:11px;}
+  .btnrow{display:flex;gap:8px;} .btnrow .btn{font-size:14px;padding:12px;}
+  /* карта-выбор точки */
+  .mapov{position:fixed;inset:0;z-index:60;background:var(--bg);display:none;}
+  #lmap{position:absolute;inset:0;}
+  .maptop{position:absolute;top:0;left:0;right:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);
+    padding:12px 14px;font-size:13px;font-weight:600;text-align:center;}
+  .pin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:5;pointer-events:none;color:var(--accent);}
+  .pin svg{width:36px;height:36px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35));}
+  .mapbtns{position:absolute;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:5;display:flex;flex-direction:column;gap:8px;}
 </style>
 </head>
 <body>
@@ -116,6 +128,13 @@
     <section class="screen" data-s="feed"><div id="feed"></div></section>
     <section class="screen" data-s="report"><div id="report"></div></section>
     <section class="screen" data-s="rank"><div id="rank"></div></section>
+  </div>
+
+  <div class="mapov" id="mapov">
+    <div class="maptop">Двигайте карту — точка в центре. Наведите на место, где планируете ловить.</div>
+    <div id="lmap"></div>
+    <div class="pin"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.1 2 5 5.1 5 9c0 5 7 13 7 13s7-8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></svg></div>
+    <div class="mapbtns"><button class="btn" onclick="confirmMap()">Показать прогноз здесь</button><button class="btn ghost" onclick="closeMap()">Отмена</button></div>
   </div>
 
   <nav class="tabbar">
@@ -192,9 +211,7 @@
       '<div class="card"><div class="row"><div class="ava">'+esc(ini(name))+'</div>'+
         '<div style="flex:1"><div style="font-weight:800;font-size:17px">'+esc(name)+'</div>'+
         '<div class="lvl">Рыбак · '+lvl(s.fish)+' уровень</div></div></div></div>'+
-      '<div class="card" id="fccard"><div class="sec" style="margin:0 0 9px">Прогноз клёва сегодня</div>'+
-        '<button class="btn ghost" onclick="loadForecast()">Показать по моему месту</button>'+
-        '<div class="sub" style="margin-top:8px">По солнечно-лунной теории для вашей точки. Локация — только зона, точную точку не храним.</div></div>'+
+      '<div class="card" id="fccard">'+fcInitial()+'</div>'+
       '<button class="btn big" onclick="go(\'report\')"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Записать улов</button>'+
       '<div style="height:12px"></div>'+
       '<div class="stats"><div class="stat"><b class="tnum">'+s.fish+'</b><span>рыб поймано</span></div>'+
@@ -203,24 +220,63 @@
       '<div class="sec">Мои рекорды по видам</div><div class="card" style="padding:4px 14px">'+recs+'</div>'+
       '<div class="sec">Мой дневник</div><div class="card" style="padding:4px 14px">'+diary+'</div>';
   }
-  function loadForecast(){
+  function fcInitial(){
+    return '<div class="sec" style="margin:0 0 9px">Прогноз клёва</div>'+
+      '<div class="btnrow"><button class="btn ghost" onclick="forecastHere()">Я на месте</button>'+
+      '<button class="btn ghost" onclick="openMap()">Выбрать на карте</button></div>'+
+      '<div class="sub" style="margin-top:8px">«Я на месте» — по вашей геолокации. «На карте» — выберите место, где планируете ловить. Точную точку не храним, только зону.</div>';
+  }
+  function forecastHere(){
     var card=document.getElementById('fccard');
-    card.innerHTML='<div class="sec" style="margin:0 0 9px">Прогноз клёва сегодня</div><div class="sub">Определяем место…</div>';
+    card.innerHTML='<div class="sec" style="margin:0 0 9px">Прогноз клёва</div><div class="sub">Определяем место…</div>';
     getLoc().then(function(l){
-      if(!l){ card.innerHTML='<div class="sec" style="margin:0 0 9px">Прогноз клёва сегодня</div><div class="sub">Не удалось получить геолокацию. Разрешите доступ и попробуйте снова.</div><button class="btn ghost" style="margin-top:10px" onclick="loadForecast()">Повторить</button>'; return; }
-      apiGet('/api/forecast', {lat:l.lat, lon:l.lon}).then(function(f){
-        var cls = f.score>=8?'':(f.score>=6?'mid':(f.score>=4?'mid':'low'));
-        var wins = f.windows.map(function(w){ return '<span class="w'+(w.kind==='major'?' major':'')+'">'+w.start+'–'+w.end+'</span>'; }).join('');
-        card.innerHTML='<div class="sec" style="margin:0 0 11px">Прогноз клёва сегодня</div>'+
-          '<div class="fc"><div class="num '+cls+'">'+f.score+'</div><div style="flex:1">'+
-          '<div style="font-weight:800">'+esc(f.label)+' клёв</div>'+
-          '<div class="sub">'+esc(f.weather||f.moon||'')+'</div></div></div>'+
-          '<div class="sub" style="margin-top:11px;font-weight:700;color:var(--ink)">Лучшие часы:</div>'+
-          '<div class="win">'+wins+'</div>'+
-          '<div class="sub" style="margin-top:9px">Расчёт по положению Луны и Солнца (solunar). Это подсказка, а не гарантия.</div>';
-      }).catch(function(){ card.innerHTML='<div class="sub">Не удалось получить прогноз.</div>'; });
+      if(!l){ card.innerHTML=fcInitial().replace('Прогноз клёва</div>','Прогноз клёва</div><div class="banner" style="margin:0 0 10px">Не удалось получить геолокацию — выберите точку на карте.</div>'); return; }
+      renderForecast(l, false);
     });
   }
+  function renderForecast(l, planned){
+    var card=document.getElementById('fccard');
+    card.innerHTML='<div class="sec" style="margin:0 0 9px">Прогноз клёва'+(planned?' (выбранная точка)':'')+'</div><div class="sub">Считаем…</div>';
+    Promise.all([ apiGet('/api/forecast',{lat:l.lat,lon:l.lon}), apiGet('/api/zone',{lat:l.lat,lon:l.lon}).catch(function(){return null;}) ])
+    .then(function(res){
+      var f=res[0], z=res[1];
+      var cls = f.score>=8?'':(f.score>=6?'mid':'low');
+      var wins = f.windows.map(function(w){ return '<span class="w'+(w.kind==='major'?' major':'')+'">'+w.start+'–'+w.end+'</span>'; }).join('');
+      var zone='';
+      if(z){
+        if(z.total>0){
+          var top = z.top.length? '<div class="sub" style="margin-top:4px">Чаще ловят: '+z.top.map(function(t){return esc(t.species)+' ('+t.count+')';}).join(', ')+'</div>' : '';
+          zone='<div class="zbox"><div style="font-weight:700">По этому месту (зона ~1 км, за 30 дней)</div>'+
+            '<div class="sub" style="margin-top:3px">Отчётов: '+z.total+' · с уловом: '+z.catch_pct+'%</div>'+top+'</div>';
+        } else {
+          zone='<div class="zbox"><div style="font-weight:700">По этому месту отчётов пока нет</div>'+
+            '<div class="sub" style="margin-top:3px">Данных по зоне нет — и это честный ответ. Будете первым, кто отметит улов здесь.</div></div>';
+        }
+      }
+      card.innerHTML='<div class="sec" style="margin:0 0 11px">Прогноз клёва'+(planned?' (выбранная точка)':' сегодня')+'</div>'+
+        '<div class="fc"><div class="num '+cls+'">'+f.score+'</div><div style="flex:1">'+
+        '<div style="font-weight:800">'+esc(f.label)+' клёв</div><div class="sub">'+esc(f.weather||f.moon||'')+'</div></div></div>'+
+        '<div class="sub" style="margin-top:11px;font-weight:700;color:var(--ink)">Лучшие часы:</div><div class="win">'+wins+'</div>'+
+        zone+
+        '<div class="btnrow" style="margin-top:12px"><button class="btn ghost" onclick="openMap()">Другое место</button></div>'+
+        '<div class="sub" style="margin-top:8px">Время клёва — по Луне и Солнцу (solunar). «Ловится/нет» по месту — из отчётов сообщества, наполняется со временем.</div>';
+    }).catch(function(){ card.innerHTML=fcInitial(); });
+  }
+
+  /* карта-выбор точки */
+  var lmap=null;
+  function openMap(){
+    document.getElementById('mapov').style.display='block';
+    var s = loc || {lat:55.75, lon:37.62};
+    if(typeof L==='undefined'){ alert('Карта не загрузилась (нет сети). Попробуйте позже.'); closeMap(); return; }
+    if(!lmap){
+      lmap = L.map('lmap',{zoomControl:true, attributionControl:false}).setView([s.lat, s.lon], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:18}).addTo(lmap);
+    } else { lmap.setView([s.lat, s.lon], 11); }
+    setTimeout(function(){ lmap.invalidateSize(); }, 120);
+  }
+  function confirmMap(){ var c=lmap.getCenter(); closeMap(); renderForecast({lat:c.lat, lon:c.lng}, true); }
+  function closeMap(){ document.getElementById('mapov').style.display='none'; }
 
   /* ── Отчёт ── */
   var SPECIES=["Щука","Окунь","Судак","Лещ","Плотва","Карась","Сом","Карп","Голавль","Жерех","Налим","Форель","Хариус","Язь","Линь"];

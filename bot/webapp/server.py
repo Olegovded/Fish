@@ -116,6 +116,18 @@ def build_app(store: Store, bot_token: str, dev_mode: bool = False,
             resp["weather"] = None
         return web.json_response(resp)
 
+    async def api_zone(request: web.Request) -> web.Response:
+        user = await _auth(request, request.query.get("initData", ""))
+        if not user:
+            return web.json_response({"error": "unauthorized"}, status=401)
+        lat, lon = _num(request.query.get("lat")), _num(request.query.get("lon"))
+        if lat is None or lon is None:
+            return web.json_response({"error": "no location"}, status=400)
+        from bot.services.geo import snap_to_zone
+        z = snap_to_zone(lat, lon)
+        stats = await store.zone_stats(z.zone_id)
+        return web.json_response({"zone": z.label, **stats})
+
     async def api_report(request: web.Request) -> web.Response:
         try:
             body = await request.json()
@@ -174,6 +186,7 @@ def build_app(store: Store, bot_token: str, dev_mode: bool = False,
     app.router.add_get("/api/feed", api_feed)
     app.router.add_get("/api/rank", api_rank)
     app.router.add_get("/api/forecast", api_forecast)
+    app.router.add_get("/api/zone", api_zone)
     app.router.add_post("/api/report", api_report)
     app.router.add_static("/static/", _STATIC)
     return app

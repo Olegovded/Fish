@@ -191,6 +191,30 @@ class Store:
             out.append(d)
         return out
 
+    async def zone_stats(self, zone_id: str, days: int = 30) -> dict:
+        """Сырая статистика по зоне: сколько отчётов, % с уловом, топ видов."""
+        async with aiosqlite.connect(self._path) as db:
+            db.row_factory = aiosqlite.Row
+            cur = await db.execute(
+                "SELECT COUNT(*) total, "
+                "SUM(CASE WHEN EXISTS(SELECT 1 FROM w_items i WHERE i.report_id=r.id) THEN 1 ELSE 0 END) with_catch "
+                "FROM w_reports r WHERE r.zone_id=? AND r.report_date >= date('now', ?)",
+                (zone_id, f"-{days} days"),
+            )
+            row = await cur.fetchone()
+            total = int(row["total"] or 0)
+            with_catch = int(row["with_catch"] or 0)
+            cur = await db.execute(
+                "SELECT i.species, COALESCE(SUM(i.qty),0) c FROM w_items i "
+                "JOIN w_reports r ON r.id=i.report_id "
+                "WHERE r.zone_id=? AND r.report_date >= date('now', ?) "
+                "GROUP BY i.species ORDER BY c DESC LIMIT 3",
+                (zone_id, f"-{days} days"),
+            )
+            top = [{"species": t["species"], "count": int(t["c"])} for t in await cur.fetchall()]
+        pct = round(with_catch / total * 100) if total else 0
+        return {"total": total, "catch_pct": pct, "top": top, "days": days}
+
     async def rank(self, user_id: int, limit: int = 20) -> dict:
         async with aiosqlite.connect(self._path) as db:
             db.row_factory = aiosqlite.Row
