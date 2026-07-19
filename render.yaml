@@ -1,0 +1,18 @@
+# Деплой на Render.com одним блюпринтом.
+# Render сам подставит RENDER_EXTERNAL_URL — приложение по нему привяжет кнопку
+# меню к боту при старте. Останется задать только BOT_TOKEN и BOT_USERNAME.
+services:
+  - type: web
+    name: ribaku-bot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m bot.main
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_TOKEN
+        sync: false          # задаётся вручную в панели Render (секрет)
+      - key: BOT_USERNAME
+        value: Ribaku_bot
+      - key: PYTHON_VERSION
+        value: "3.11.9"

@@ -52,8 +52,11 @@ class Config:
             bot_token=_get("BOT_TOKEN", required=True),
             db_path=_get("DB_PATH", str(BASE_DIR / "fishing.db")),
             grid_size_m=int(_get("GRID_SIZE_M", "1000")),
-            webapp_url=_get("WEBAPP_URL", ""),
+            # На Render публичный URL приходит в RENDER_EXTERNAL_URL — тогда
+            # приложение само себя привяжет к боту, без ручной настройки.
+            webapp_url=_get("WEBAPP_URL", "") or _get("RENDER_EXTERNAL_URL", ""),
             web_host=_get("WEB_HOST", "0.0.0.0"),
-            web_port=int(_get("WEB_PORT", "8080")),
+            # Хостинги (Render и т.п.) задают порт через $PORT.
+            web_port=int(_get("PORT", "") or _get("WEB_PORT", "8080")),
             bot_username=_get("BOT_USERNAME", "fishing_bot"),
         )

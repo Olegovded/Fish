@@ -1,82 +1,365 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Карта дневника</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    html, body { margin: 0; height: 100%; font-family: -apple-system, system-ui, sans-serif; }
-    #map { position: absolute; inset: 0; }
-    #panel {
-      position: absolute; z-index: 1000; left: 12px; right: 12px; bottom: 12px;
-      background: var(--tg-theme-bg-color, #fff); color: var(--tg-theme-text-color, #111);
-      border-radius: 12px; padding: 10px 14px; box-shadow: 0 2px 12px rgba(0,0,0,.2);
-      font-size: 14px;
-    }
-    #empty {
-      position: absolute; z-index: 1000; inset: 0; display: none;
-      align-items: center; justify-content: center; text-align: center; padding: 24px;
-      color: var(--tg-theme-text-color, #111); background: var(--tg-theme-bg-color, #fff);
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Рыбаки</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root{
+    --bg:#eceeec; --surface:#ffffff; --surface-2:#f1f3f0; --ink:#1b2320; --ink-2:#6c7772;
+    --line:#e0e3df; --accent:#2f7d54; --accent-2:#276a48; --accent-ink:#ffffff;
+    --record:#c67e2a; --record-bg:#f6ecdc; --miss:#8a938f; --good:#2f7d54; --radius:14px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#121613; --surface:#1a201d; --surface-2:#141a17; --ink:#e8ede9; --ink-2:#94a09a;
+    --line:#28312c; --accent:#3d9968; --accent-2:#347f57; --accent-ink:#08130d;
+    --record:#d99640; --record-bg:#2a2115; --miss:#6a746f; --good:#3d9968;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#121613; --surface:#1a201d; --surface-2:#141a17; --ink:#e8ede9; --ink-2:#94a09a;
+    --line:#28312c; --accent:#3d9968; --accent-2:#347f57; --accent-ink:#08130d;
+    --record:#d99640; --record-bg:#2a2115; --miss:#6a746f; --good:#3d9968;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{font-family:var(--font);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;}
+  svg.i{width:22px;height:22px;stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+  .topbar{flex:none;display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--surface);box-shadow:0 1px 0 var(--line);}
+  .topbar .title{font-size:19px;font-weight:800;}
+  .screens{flex:1;position:relative;overflow:hidden;}
+  .screen{position:absolute;inset:0;overflow-y:auto;padding:14px 14px 90px;display:none;}
+  .screen.active{display:block;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+  .row{display:flex;align-items:center;gap:12px;}
+  .muted{color:var(--ink-2);} .sub{font-size:12.5px;color:var(--ink-2);}
+  .sec{font-size:13px;font-weight:800;margin:2px 2px 9px;}
+  .tnum{font-variant-numeric:tabular-nums;}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--accent);color:var(--accent-ink);
+    font-weight:800;font-size:16px;padding:15px;border-radius:12px;cursor:pointer;border:none;font-family:inherit;}
+  .btn.big{font-size:17px;padding:17px;}
+  .btn.ghost{background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);}
+  .btn:disabled{opacity:.6;}
+  .btn svg.i{width:20px;height:20px;stroke-width:2.1;}
+  .ava{width:56px;height:56px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;background:var(--accent);}
+  .ava.sm{width:38px;height:38px;font-size:14px;}
+  .lvl{font-size:12px;font-weight:700;color:var(--accent);}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 6px;text-align:center;}
+  .stat b{display:block;font-size:20px;font-weight:800;} .stat span{font-size:11px;color:var(--ink-2);}
+  .rec-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--record-bg);color:var(--record);}
+  .catch-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--surface-2);color:var(--good);}
+  .miss-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--surface-2);color:var(--miss);}
+  .hist{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line);}
+  .hist:last-child{border-bottom:none;}
+  .hist .dot{width:8px;height:8px;border-radius:50%;background:var(--good);flex:none;}
+  .hist .dot.miss{background:var(--miss);}
+  /* прогноз */
+  .fc{display:flex;align-items:center;gap:14px;}
+  .fc .num{width:56px;height:56px;border-radius:14px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:22px;font-weight:800;flex:none;}
+  .fc .num.mid{background:var(--record);} .fc .num.low{background:var(--miss);}
+  .win{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+  .win .w{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);}
+  .win .w.major{background:var(--record-bg);color:var(--record);border-color:transparent;}
+  /* отчёт */
+  .unit{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface-2);border-radius:11px;padding:4px;margin-bottom:14px;}
+  .unit .u{padding:9px;text-align:center;border-radius:8px;font-weight:700;font-size:14px;color:var(--ink-2);cursor:pointer;}
+  .unit .u.on{background:var(--surface);color:var(--ink);}
+  .entry{border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:10px;background:var(--surface);}
+  .entry .top{display:flex;align-items:center;gap:9px;}
+  .entry .fish{font-weight:800;font-size:15px;flex:1;}
+  .rm{color:var(--ink-2);font-size:17px;cursor:pointer;}
+  .stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .stepper button{width:34px;height:34px;border:none;background:var(--surface-2);font-size:18px;color:var(--ink);cursor:pointer;}
+  .stepper .n{width:34px;text-align:center;font-weight:800;}
+  .winput{width:100%;display:block;border:1px solid var(--line);border-radius:9px;padding:10px 11px;background:var(--surface);color:var(--ink);font-size:14px;font-family:inherit;}
+  .wlab{font-size:11.5px;color:var(--ink-2);font-weight:600;margin:9px 2px 5px;} .wlab.rec{color:var(--record);}
+  .newrec{margin-top:9px;font-size:12.5px;font-weight:700;color:var(--record);background:var(--record-bg);border-radius:8px;padding:8px 10px;}
+  .baitlab{font-size:11.5px;color:var(--ink-2);font-weight:600;margin:11px 2px 6px;}
+  .baitrow{display:flex;gap:7px;flex-wrap:wrap;}
+  .bchip{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;}
+  .bchip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+  .bchip.add,.achip.add{border-style:dashed;color:var(--accent);background:var(--surface);}
+  .addchips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+  .achip{font-size:13.5px;font-weight:600;padding:8px 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line);cursor:pointer;}
+  .totals{background:var(--surface-2);border-radius:11px;padding:12px 13px;margin-bottom:12px;font-size:14px;}
+  .misslink{text-align:center;font-size:13px;color:var(--ink-2);font-weight:600;margin:14px 0 4px;cursor:pointer;}
+  .share-btn{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:11px;padding:10px;border-radius:10px;background:var(--surface-2);color:var(--accent);font-weight:700;font-size:14px;cursor:pointer;}
+  .share-btn svg.i{width:18px;height:18px;}
+  .kv{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .kv .k{font-size:12.5px;background:var(--surface-2);border-radius:8px;padding:5px 9px;font-weight:600;}
+  .kv .k.rec{background:var(--record-bg);color:var(--record);}
+  .tabs2{display:flex;gap:6px;background:var(--surface-2);border-radius:11px;padding:4px;margin-bottom:12px;}
+  .tabs2 .t{flex:1;text-align:center;padding:9px;border-radius:8px;font-weight:700;font-size:13.5px;color:var(--ink-2);cursor:pointer;}
+  .tabs2 .t.on{background:var(--surface);color:var(--ink);}
+  .rrow{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line);}
+  .rrow:last-child{border-bottom:none;} .rn{width:22px;text-align:center;font-weight:800;color:var(--ink-2);}
+  .rrow.me{background:var(--surface-2);border-radius:10px;padding:11px 8px;}
+  .tabbar{position:fixed;left:0;right:0;bottom:0;height:64px;background:var(--surface);border-top:1px solid var(--line);display:flex;padding:0 4px;
+    padding-bottom:env(safe-area-inset-bottom);}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--ink-2);cursor:pointer;padding-top:7px;}
+  .tab.on{color:var(--accent);}
+  .tab.center{flex:none;width:64px;}
+  .tab.center .fab{width:50px;height:50px;border-radius:14px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin-top:-14px;box-shadow:0 4px 12px rgba(30,90,60,.35);}
+  .tab.center .fab svg.i{width:26px;height:26px;stroke-width:2.4;}
+  .empty{text-align:center;color:var(--ink-2);font-size:14px;padding:22px 10px;}
+  .banner{background:var(--record-bg);color:var(--record);font-size:12.5px;font-weight:600;padding:9px 12px;border-radius:10px;margin-bottom:12px;text-align:center;}
+</style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="panel">Загрузка ваших точек…</div>
-  <div id="empty">
-    <div>
-      🎣 В дневнике пока нет отчётов.<br />
-      Вернитесь в чат и запишите первую поездку — точка появится на карте.
-    </div>
+  <div class="topbar"><div class="title" id="ttl">Мой профиль</div></div>
+
+  <div class="screens">
+    <section class="screen active" data-s="profile"><div id="profile"></div></section>
+    <section class="screen" data-s="feed"><div id="feed"></div></section>
+    <section class="screen" data-s="report"><div id="report"></div></section>
+    <section class="screen" data-s="rank"><div id="rank"></div></section>
   </div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    const tg = window.Telegram ? window.Telegram.WebApp : null;
-    if (tg) { tg.ready(); tg.expand(); }
 
-    const map = L.map('map').setView([55.75, 37.62], 6); // Москва по умолчанию
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18, attribution: '© OpenStreetMap'
-    }).addTo(map);
+  <nav class="tabbar">
+    <div class="tab on" data-go="profile"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Профиль</div>
+    <div class="tab" data-go="feed"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Лента</div>
+    <div class="tab center" data-go="report"><span class="fab"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></div>
+    <div class="tab" data-go="rank"><svg class="i" viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 3M17 6h3a3 3 0 0 1-3 3M9 20h6M10 20l.5-4h3l.5 4"/></svg>Рейтинг</div>
+  </nav>
 
-    const initData = tg ? tg.initData : '';
+<script>
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg){ tg.ready(); tg.expand(); if(tg.colorScheme) document.documentElement.setAttribute('data-theme', tg.colorScheme); }
+  var initData = tg ? tg.initData : '';
+  var BOT = 'Ribaku_bot';
+  var titles = {profile:'Мой профиль', feed:'Лента', report:'Записать улов', rank:'Рейтинг'};
+  var loc = null; // кэш геолокации
 
-    fetch('/api/reports?initData=' + encodeURIComponent(initData))
-      .then(r => r.json())
-      .then(data => {
-        const reports = (data && data.reports) || [];
-        const panel = document.getElementById('panel');
-        if (!reports.length) {
-          document.getElementById('empty').style.display = 'flex';
-          panel.style.display = 'none';
-          return;
-        }
-        const group = [];
-        let caught = 0;
-        reports.forEach(rep => {
-          if (rep.caught) caught++;
-          const color = rep.caught ? '#2e7d32' : '#9e9e9e';
-          const marker = L.circleMarker([rep.lat, rep.lon], {
-            radius: 8, color: color, fillColor: color, fillOpacity: 0.7
-          }).addTo(map);
-          const title = (rep.caught ? '✅ ' + (rep.species || 'Улов') : '▫️ Без улова');
-          marker.bindPopup(
-            '<b>' + title + '</b><br>' + rep.date +
-            (rep.bait ? '<br>на ' + rep.bait : '') +
-            (rep.weather ? '<br>' + rep.weather : '') +
-            (rep.moon ? '<br>' + rep.moon : '')
-          );
-          group.push([rep.lat, rep.lon]);
-        });
-        if (group.length) map.fitBounds(group, { padding: [40, 40], maxZoom: 12 });
-        const pct = Math.round(caught / reports.length * 100);
-        panel.textContent = 'Точек: ' + reports.length + ' · с уловом: ' + pct + '%';
-      })
-      .catch(() => {
-        document.getElementById('panel').textContent = 'Не удалось загрузить точки.';
-      });
-  </script>
+  function esc(s){ return (s==null?'':(''+s)).replace(/[&<>"]/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function ini(name){ var n=(name||'Рыбак').trim(); var p=n.split(/\s+/); return ((p[0]||'Р')[0]+((p[1]||'')[0]||'')).toUpperCase(); }
+  function kg1(x){ return (Math.round((x||0)*10)/10); }
+
+  function apiGet(path, params){
+    params = params||{}; params.initData = initData;
+    return fetch(path+'?'+new URLSearchParams(params)).then(function(r){ if(!r.ok) throw r; return r.json(); });
+  }
+  function apiPost(path, body){
+    body.initData = initData;
+    return fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})
+      .then(function(r){ if(!r.ok) throw r; return r.json(); });
+  }
+  function getLoc(){
+    return new Promise(function(res){
+      if(loc) return res(loc);
+      if(!navigator.geolocation) return res(null);
+      navigator.geolocation.getCurrentPosition(
+        function(p){ loc={lat:p.coords.latitude, lon:p.coords.longitude}; res(loc); },
+        function(){ res(null); }, {timeout:8000, maximumAge:600000});
+    });
+  }
+  function go(name){
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('active', s.dataset.s===name); });
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t.dataset.go===name); });
+    document.getElementById('ttl').textContent = titles[name];
+    document.querySelector('.screens').scrollTop = 0;
+    if(name==='feed') loadFeed();
+    if(name==='rank') loadRank();
+    if(name==='report') renderReport();
+  }
+  document.querySelectorAll('.tab').forEach(function(t){ t.addEventListener('click', function(){ go(t.dataset.go); }); });
+
+  var noAuthBanner = initData ? '' : '<div class="banner">Демо-режим: откройте приложение через бота @Ribaku_bot, чтобы данные сохранялись.</div>';
+
+  /* ── Профиль ── */
+  function loadProfile(){
+    apiGet('/api/me').then(function(d){
+      BOT = d.bot || BOT;
+      renderProfile(d);
+    }).catch(function(){ document.getElementById('profile').innerHTML = noAuthBanner + '<div class="empty">Не удалось загрузить профиль.</div>'; });
+  }
+  function lvl(fish){ return 1 + Math.floor((fish||0)/10); }
+  function renderProfile(d){
+    var s=d.summary, name=d.user.name;
+    var recs = d.records.length ? d.records.map(function(r){
+      return '<div class="hist"><div style="flex:1"><b>'+esc(r.species)+'</b><div class="sub">'+esc(r.date)+'</div></div><span class="rec-badge">'+r.kg+' кг</span></div>';
+    }).join('') : '<div class="empty">Пока нет рекордов. Запишите улов с весом — крупнейшая особь станет рекордом.</div>';
+    var diary = d.diary.length ? d.diary.map(function(t){
+      var caught = (t.fish>0);
+      return '<div class="hist"><span class="dot'+(caught?'':' miss')+'"></span><div style="flex:1"><b>'+esc(t.species_list||'Без улова')+'</b>'+
+        '<div class="sub">'+esc(t.report_date)+(t.kg?(' · '+kg1(t.kg)+' кг'):'')+'</div></div>'+
+        (caught?'<span class="catch-badge">УЛОВ</span>':'<span class="miss-badge">ПУСТО</span>')+'</div>';
+    }).join('') : '<div class="empty">Дневник пуст. Запишите первую поездку.</div>';
+
+    document.getElementById('profile').innerHTML = noAuthBanner +
+      '<div class="card"><div class="row"><div class="ava">'+esc(ini(name))+'</div>'+
+        '<div style="flex:1"><div style="font-weight:800;font-size:17px">'+esc(name)+'</div>'+
+        '<div class="lvl">Рыбак · '+lvl(s.fish)+' уровень</div></div></div></div>'+
+      '<div class="card" id="fccard"><div class="sec" style="margin:0 0 9px">Прогноз клёва сегодня</div>'+
+        '<button class="btn ghost" onclick="loadForecast()">Показать по моему месту</button>'+
+        '<div class="sub" style="margin-top:8px">По солнечно-лунной теории для вашей точки. Локация — только зона, точную точку не храним.</div></div>'+
+      '<button class="btn big" onclick="go(\'report\')"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Записать улов</button>'+
+      '<div style="height:12px"></div>'+
+      '<div class="stats"><div class="stat"><b class="tnum">'+s.fish+'</b><span>рыб поймано</span></div>'+
+        '<div class="stat"><b class="tnum">'+s.kg+'</b><span>кг всего</span></div>'+
+        '<div class="stat"><b class="tnum">'+s.trips+'</b><span>поездки</span></div></div>'+
+      '<div class="sec">Мои рекорды по видам</div><div class="card" style="padding:4px 14px">'+recs+'</div>'+
+      '<div class="sec">Мой дневник</div><div class="card" style="padding:4px 14px">'+diary+'</div>';
+  }
+  function loadForecast(){
+    var card=document.getElementById('fccard');
+    card.innerHTML='<div class="sec" style="margin:0 0 9px">Прогноз клёва сегодня</div><div class="sub">Определяем место…</div>';
+    getLoc().then(function(l){
+      if(!l){ card.innerHTML='<div class="sec" style="margin:0 0 9px">Прогноз клёва сегодня</div><div class="sub">Не удалось получить геолокацию. Разрешите доступ и попробуйте снова.</div><button class="btn ghost" style="margin-top:10px" onclick="loadForecast()">Повторить</button>'; return; }
+      apiGet('/api/forecast', {lat:l.lat, lon:l.lon}).then(function(f){
+        var cls = f.score>=8?'':(f.score>=6?'mid':(f.score>=4?'mid':'low'));
+        var wins = f.windows.map(function(w){ return '<span class="w'+(w.kind==='major'?' major':'')+'">'+w.start+'–'+w.end+'</span>'; }).join('');
+        card.innerHTML='<div class="sec" style="margin:0 0 11px">Прогноз клёва сегодня</div>'+
+          '<div class="fc"><div class="num '+cls+'">'+f.score+'</div><div style="flex:1">'+
+          '<div style="font-weight:800">'+esc(f.label)+' клёв</div>'+
+          '<div class="sub">'+esc(f.weather||f.moon||'')+'</div></div></div>'+
+          '<div class="sub" style="margin-top:11px;font-weight:700;color:var(--ink)">Лучшие часы:</div>'+
+          '<div class="win">'+wins+'</div>'+
+          '<div class="sub" style="margin-top:9px">Расчёт по положению Луны и Солнца (solunar). Это подсказка, а не гарантия.</div>';
+      }).catch(function(){ card.innerHTML='<div class="sub">Не удалось получить прогноз.</div>'; });
+    });
+  }
+
+  /* ── Отчёт ── */
+  var SPECIES=["Щука","Окунь","Судак","Лещ","Плотва","Карась","Сом","Карп","Голавль","Жерех","Налим","Форель","Хариус","Язь","Линь"];
+  var customSpecies=[];
+  var BAITS=["Блесна","Воблер","Силикон","Джиг","Балансир","Вертушка","Живец","Червь","Опарыш","Мотыль","Мормышка","Кукуруза","Тесто","Бойлы"];
+  var customBaits=[];
+  var entries=[];
+  function reportSkeleton(){
+    document.getElementById('report').innerHTML =
+      '<div class="sec">Что поймали? Можно несколько видов</div>'+
+      '<div class="addchips" id="picker"></div><div id="entries"></div>'+
+      '<div class="totals" id="totals"></div>'+
+      '<button class="btn" id="saveBtn" onclick="saveReport()">Сохранить улов</button>'+
+      '<div class="misslink" onclick="saveEmpty()">Ничего не поймал — отметить пустой день</div>';
+  }
+  function addSp(sp){ if(entries.find(function(e){return e.sp===sp;}))return; entries.push({sp:sp,qty:1,total:"",biggest:"",baits:[]}); renderEntries(); }
+  function addCustomSp(){ var v=(prompt('Свой вид рыбы:')||'').trim(); if(!v)return; if(customSpecies.indexOf(v)<0&&SPECIES.indexOf(v)<0)customSpecies.push(v); addSp(v); }
+  function step(i,d){ entries[i].qty=Math.max(1,entries[i].qty+d); renderEntries(); }
+  function toggleBait(i,b){ var a=entries[i].baits,k=a.indexOf(b); if(k<0)a.push(b); else a.splice(k,1); renderEntries(); }
+  function addCustomBait(i){ var v=(prompt('Своя наживка/приманка:')||'').trim(); if(!v)return; if(customBaits.indexOf(v)<0&&BAITS.indexOf(v)<0)customBaits.push(v); if(entries[i].baits.indexOf(v)<0)entries[i].baits.push(v); renderEntries(); }
+  function rm(i){ entries.splice(i,1); renderEntries(); }
+  function setTotal(i,v){ entries[i].total=v; refreshTotals(); }
+  function setBiggest(i,v){ entries[i].biggest=v; refreshTotals(); }
+  function entryKg(e){ var t=parseFloat(e.total)||0; if(t>0)return t; return e.qty===1?(parseFloat(e.biggest)||0):0; }
+  function renderReport(){ reportSkeleton(); renderEntries(); }
+  function renderEntries(){
+    var pk=document.getElementById('picker'); pk.innerHTML='';
+    SPECIES.concat(customSpecies).forEach(function(s){ if(entries.find(function(e){return e.sp===s;}))return;
+      var c=document.createElement('div'); c.className='achip'; c.textContent='+ '+s; c.onclick=function(){addSp(s);}; pk.appendChild(c); });
+    var own=document.createElement('div'); own.className='achip add'; own.textContent='+ Свой вид'; own.onclick=addCustomSp; pk.appendChild(own);
+    var box=document.getElementById('entries'); box.innerHTML='';
+    entries.forEach(function(e,i){
+      var baits=BAITS.concat(customBaits).map(function(b){ return '<span class="bchip'+(e.baits.indexOf(b)>=0?' on':'')+'" onclick="toggleBait('+i+',\''+b.replace(/'/g,"\\'")+'\')">'+esc(b)+'</span>'; }).join('')+
+        '<span class="bchip add" onclick="addCustomBait('+i+')">+ Своё</span>';
+      var wf = e.qty>1
+        ? '<div class="wlab">Общий вес улова этого вида</div><input class="winput" inputmode="decimal" placeholder="кг, по желанию" value="'+e.total+'" oninput="setTotal('+i+',this.value)">'+
+          '<div class="wlab rec">Самая крупная особь — пойдёт в рекорд</div><input class="winput" inputmode="decimal" placeholder="кг" value="'+e.biggest+'" oninput="setBiggest('+i+',this.value)">'
+        : '<div class="wlab rec">Вес рыбы — пойдёт в рекорд</div><input class="winput" inputmode="decimal" placeholder="кг, по желанию" value="'+e.biggest+'" oninput="setBiggest('+i+',this.value)">';
+      var d=document.createElement('div'); d.className='entry';
+      d.innerHTML='<div class="top"><span class="fish">'+esc(e.sp)+'</span><span class="rm" onclick="rm('+i+')">✕</span></div>'+
+        '<div class="row" style="margin-top:9px"><div class="stepper"><button onclick="step('+i+',-1)">−</button><span class="n">'+e.qty+'</span><button onclick="step('+i+',1)">＋</button></div><span class="sub">штук</span></div>'+
+        wf+'<div class="baitlab">На что ловилось (можно несколько)</div><div class="baitrow">'+baits+'</div>';
+      box.appendChild(d);
+    });
+    refreshTotals();
+  }
+  function refreshTotals(){
+    var n=entries.reduce(function(a,e){return a+e.qty;},0);
+    var kg=entries.reduce(function(a,e){return a+entryKg(e);},0);
+    var t=document.getElementById('totals'); if(!t)return;
+    t.innerHTML = entries.length
+      ? '<b>Итого:</b> '+n+' шт'+(kg>0?' · '+kg1(kg)+' кг':'')+'<div class="sub" style="margin-top:5px">Рекорд по виду — вес самой крупной особи.</div>'
+      : '<span class="sub">Добавьте вид рыбы выше.</span>';
+  }
+  function collectItems(){
+    return entries.filter(function(e){return e.sp;}).map(function(e){
+      return {species:e.sp, qty:e.qty, total:e.total, biggest:e.biggest, baits:e.baits};
+    });
+  }
+  function saveReport(){
+    var items=collectItems();
+    if(!items.length){ alert('Добавьте хотя бы один вид рыбы или отметьте пустой день.'); return; }
+    var btn=document.getElementById('saveBtn'); btn.disabled=true; btn.textContent='Определяем место…';
+    getLoc().then(function(l){
+      btn.textContent='Сохраняем…';
+      return apiPost('/api/report', {items:items, lat:l?l.lat:null, lon:l?l.lon:null});
+    }).then(function(res){
+      entries=[]; afterSave(res, items);
+    }).catch(function(){ btn.disabled=false; btn.textContent='Сохранить улов'; alert('Не удалось сохранить. Проверьте связь.'); });
+  }
+  function saveEmpty(){
+    getLoc().then(function(l){ return apiPost('/api/report', {items:[], lat:l?l.lat:null, lon:l?l.lon:null}); })
+      .then(function(){ alert('Отмечен пустой день. Спасибо за честный отчёт!'); go('profile'); loadProfile(); })
+      .catch(function(){ alert('Не удалось сохранить.'); });
+  }
+  function afterSave(res, items){
+    var recTxt = (res.new_records&&res.new_records.length)
+      ? '\nНовые рекорды: '+res.new_records.map(function(r){return r.species+' '+r.kg+' кг';}).join(', ') : '';
+    if(tg && tg.showPopup){
+      tg.showPopup({title:'Улов сохранён', message:'Записано видов: '+items.length+recTxt,
+        buttons:[{id:'share',type:'default',text:'Поделиться'},{id:'ok',type:'ok'}]},
+        function(id){ if(id==='share') shareCatch(items, res); go('profile'); loadProfile(); });
+    } else { alert('Улов сохранён.'+recTxt); go('profile'); loadProfile(); }
+  }
+
+  /* ── Поделиться ── */
+  function buildCatchMsg(items, res){
+    var lines = items.map(function(it){
+      var w = it.biggest? (' — '+it.biggest+' кг'+((res.new_records||[]).find(function(r){return r.species===it.species;})?' (рекорд!)':'')) : (it.total?(' — '+it.total+' кг'):'');
+      return '• '+it.species+' ×'+it.qty+w;
+    }).join('\n');
+    var link='https://t.me/'+BOT+'?startapp';
+    return 'Мой улов сегодня:\n'+lines+'\n\nДневник рыбака: веди уловы и соревнуйся с друзьями\n'+link;
+  }
+  function shareCatch(items, res){
+    var text = buildCatchMsg(items, res);
+    var url = 'https://t.me/'+BOT+'?startapp';
+    var share = 'https://t.me/share/url?url='+encodeURIComponent(url)+'&text='+encodeURIComponent(text);
+    if(tg && tg.openTelegramLink) tg.openTelegramLink(share); else window.open(share,'_blank');
+  }
+  function invite(){
+    var text='Лови рыбу и веди дневник вместе со мной в «Рыбаках».\nЗаходи, добавляйся в друзья:\nhttps://t.me/'+BOT+'?startapp';
+    var share='https://t.me/share/url?url='+encodeURIComponent('https://t.me/'+BOT)+'&text='+encodeURIComponent(text);
+    if(tg && tg.openTelegramLink) tg.openTelegramLink(share); else window.open(share,'_blank');
+  }
+
+  /* ── Лента ── */
+  function loadFeed(){
+    apiGet('/api/feed').then(function(d){
+      var f=d.feed;
+      document.getElementById('feed').innerHTML = f.length ? f.map(function(r){
+        var caught=(r.fish>0);
+        var kv = caught ? '<div class="kv"><span class="k">'+r.fish+' рыб</span>'+(r.kg?'<span class="k">'+kg1(r.kg)+' кг</span>':'')+
+          (r.biggest?'<span class="k rec">крупная '+r.biggest+' кг</span>':'')+(r.baits?'<span class="k">'+esc((r.baits||'').split(',')[0])+'</span>':'')+'</div>' : '';
+        return '<article class="card"><div class="row"><div class="ava sm">'+esc(ini(r.name))+'</div>'+
+          '<div style="flex:1"><div style="font-weight:800">'+esc(r.name)+'</div><div class="sub">'+esc(r.report_date)+'</div></div>'+
+          (caught?'<span class="catch-badge">УЛОВ</span>':'<span class="miss-badge">ПУСТО</span>')+'</div>'+
+          '<div style="font-weight:700;margin-top:8px">'+esc(r.species_list||'Не клевало')+'</div>'+kv+'</article>';
+      }).join('') : '<div class="empty">Лента пуста. Первый улов может быть вашим — вкладка «Записать улов».</div>';
+    }).catch(function(){ document.getElementById('feed').innerHTML=noAuthBanner+'<div class="empty">Не удалось загрузить ленту.</div>'; });
+  }
+
+  /* ── Рейтинг ── */
+  function loadRank(){
+    apiGet('/api/rank').then(function(d){
+      var rows=d.board.map(function(x){
+        return '<div class="rrow'+(d.me&&x.pos===d.me.pos?' me':'')+'"><div class="rn">'+x.pos+'</div><div class="ava sm">'+esc(ini(x.name))+'</div>'+
+          '<div style="flex:1"><b>'+esc(x.name)+'</b><div class="sub">'+kg1(x.kg)+' кг · '+x.fish+' рыб</div></div></div>';
+      }).join('');
+      if(!d.board.length) rows='<div class="empty">Рейтинг пока пуст.</div>';
+      var meOut = (d.me && d.me.pos>d.board.length) ? '<div class="card" style="padding:6px 12px;margin-top:-4px"><div class="rrow me"><div class="rn">'+d.me.pos+'</div><div class="ava sm">'+esc(ini(d.me.name))+'</div><div style="flex:1"><b>Вы</b><div class="sub">'+kg1(d.me.kg)+' кг</div></div></div></div>' : '';
+      document.getElementById('rank').innerHTML =
+        '<button class="btn ghost" onclick="invite()"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg> Пригласить друга</button>'+
+        '<div style="height:12px"></div><div class="card" style="padding:6px 12px">'+rows+'</div>'+meOut+
+        '<p class="sub" style="text-align:center;padding:0 12px">Рейтинг по весу улова. Приглашайте друзей — так растёт сообщество.</p>';
+    }).catch(function(){ document.getElementById('rank').innerHTML=noAuthBanner+'<div class="empty">Не удалось загрузить рейтинг.</div>'; });
+  }
+
+  loadProfile();
+</script>
 </body>
 </html>

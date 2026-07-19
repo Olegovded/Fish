@@ -1,63 +1,93 @@
-"""Точка входа: поднимает бота (long polling) и, при наличии WEBAPP_URL,
-веб-сервер мини-приложения — в одном процессе.
+"""Точка входа: бот + веб-сервер мини-приложения в одном процессе.
 
-Зависимости (db, config) прокидываются в хендлеры через DI aiogram: то, что
-передано в start_polling как kwargs, доступно хендлерам по имени аргумента.
+Бот при старте сам привязывает кнопку меню к мини-приложению (self-bind): как
+только процесс поднят там, где доступен Telegram, @Ribaku_bot начинает открывать
+приложение — отдельная настройка через BotFather не нужна.
 """
 from __future__ import annotations
 
 import asyncio
 import logging
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+from aiogram.filters import CommandStart
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    MenuButtonWebApp,
+    Message,
+    WebAppInfo,
+)
 from aiohttp import web
 
 from bot.config import Config
-from bot.db import Database
-from bot.handlers import diary, report, start, stats
 from bot.webapp.server import build_app
+from bot.webapp.store import Store
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("fishing-bot")
 
 
-async def _run_webapp(config: Config, db: Database) -> web.AppRunner | None:
-    if not config.webapp_url:
-        log.info("WEBAPP_URL не задан — мини-приложение отключено.")
-        return None
-    app = build_app(db, config.bot_token)
+def _open_kb(url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🎣 Открыть приложение", web_app=WebAppInfo(url=url))
+    ]])
+
+
+async def main() -> None:
+    config = Config.load()
+    store = Store(config.db_path)
+    await store.init()
+
+    bot = Bot(config.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    dp = Dispatcher()
+
+    @dp.message(CommandStart())
+    async def start(message: Message) -> None:
+        if config.webapp_url:
+            await message.answer(
+                "🎣 <b>Рыбаки</b> — дневник улова.\n\n"
+                "Записывай уловы, следи за рекордами, смотри прогноз клёва и "
+                "соревнуйся с друзьями. Жми кнопку ниже 👇",
+                reply_markup=_open_kb(config.webapp_url),
+            )
+        else:
+            await message.answer(
+                "Приложение ещё не развёрнуто (не задан WEBAPP_URL). "
+                "После деплоя здесь появится кнопка «Открыть приложение»."
+            )
+
+    @dp.message(F.web_app_data)
+    async def _wad(message: Message) -> None:
+        await message.answer("Принято ✅")
+
+    # Раздаём мини-апп и API
+    app = build_app(store, config.bot_token, dev_mode=False, bot_username=config.bot_username)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, config.web_host, config.web_port)
     await site.start()
     log.info("Мини-приложение слушает %s:%s", config.web_host, config.web_port)
-    return runner
 
+    # Self-bind: кнопка меню -> мини-приложение
+    if config.webapp_url:
+        try:
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(text="🎣 Открыть", web_app=WebAppInfo(url=config.webapp_url))
+            )
+            log.info("Кнопка меню привязана к %s", config.webapp_url)
+        except Exception as e:  # noqa: BLE001
+            log.warning("Не удалось привязать кнопку меню: %s", e)
+    else:
+        log.warning("WEBAPP_URL не задан — кнопка меню не привязана.")
 
-async def main() -> None:
-    config = Config.load()
-    db = Database(config.db_path)
-    await db.init()
-
-    bot = Bot(
-        token=config.bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-    )
-    dp = Dispatcher()
-    dp.include_routers(start.router, report.router, diary.router, stats.router)
-
-    runner = await _run_webapp(config, db)
     try:
         log.info("Бот запущен.")
-        await dp.start_polling(bot, db=db, config=config)
+        await dp.start_polling(bot)
     finally:
-        if runner is not None:
-            await runner.cleanup()
+        await runner.cleanup()
         await bot.session.close()
 
 
