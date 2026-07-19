@@ -11,7 +11,9 @@ services:
     healthCheckPath: /health
     envVars:
       - key: BOT_TOKEN
-        sync: false          # задаётся вручную в панели Render (секрет)
+        sync: false          # секрет: токен от @BotFather
+      - key: DATABASE_URL
+        sync: false          # секрет: строка подключения Supabase (постоянная база)
       - key: BOT_USERNAME
         value: Ribaku_bot
       - key: PYTHON_VERSION

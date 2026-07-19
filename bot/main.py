@@ -38,8 +38,9 @@ def _open_kb(url: str) -> InlineKeyboardMarkup:
 
 async def main() -> None:
     config = Config.load()
-    store = Store(config.db_path)
+    store = Store(config.database_url or config.db_path)
     await store.init()
+    log.info("База данных: %s", "Postgres/Supabase" if config.database_url else "SQLite (локально)")
 
     bot = Bot(config.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()

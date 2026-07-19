@@ -27,6 +27,9 @@ def _get(name: str, default: str | None = None, required: bool = False) -> str:
 class Config:
     bot_token: str
     db_path: str
+    # Строка подключения к постоянной базе (Postgres/Supabase). Если задана —
+    # используется она; иначе локальный SQLite-файл db_path.
+    database_url: str
     # Размер ячейки сетки в метрах. Локация рыбака всегда округляется до центра
     # ячейки — точный пин наружу никогда не отдаётся (принцип из брифа).
     grid_size_m: int
@@ -51,6 +54,7 @@ class Config:
         return Config(
             bot_token=_get("BOT_TOKEN", required=True),
             db_path=_get("DB_PATH", str(BASE_DIR / "fishing.db")),
+            database_url=_get("DATABASE_URL", ""),
             grid_size_m=int(_get("GRID_SIZE_M", "1000")),
             # На Render публичный URL приходит в RENDER_EXTERNAL_URL — тогда
             # приложение само себя привяжет к боту, без ручной настройки.
