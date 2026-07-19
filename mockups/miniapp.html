@@ -1,4 +1,4 @@
-<title>Рыбаки — прототип v4</title>
+<title>Рыбаки — прототип v5</title>
 <style>
   :root{
     --bg:#eceeec; --surface:#ffffff; --surface-2:#f1f3f0; --ink:#1b2320; --ink-2:#6c7772;
@@ -101,8 +101,10 @@
   .wlab.rec{color:var(--record);}
   .newrec{margin-top:9px;font-size:12.5px;font-weight:700;color:var(--record);background:var(--record-bg);border-radius:8px;padding:8px 10px;}
   .baitrow{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;}
+  .baitlab{font-size:11.5px;color:var(--ink-2);font-weight:600;margin:11px 2px 6px;}
   .bchip{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;}
   .bchip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+  .bchip.add,.achip.add{border-style:dashed;color:var(--accent);background:var(--surface);}
   .addchips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
   .achip{font-size:13.5px;font-weight:600;padding:8px 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line);cursor:pointer;}
   .totals{background:var(--surface-2);border-radius:11px;padding:12px 13px;margin-bottom:12px;font-size:14px;}
@@ -133,9 +135,9 @@
   @media (prefers-reduced-motion:reduce){.sheet,.sheetbg{transition:none;}}
 </style>
 
-<p class="pitch">Прототип <b>v4</b> · исправлена логика рекордов. В отчёте у каждого вида теперь отдельно:
-<b>количество</b>, <b>общий вес</b> и <b>вес самой крупной особи</b> — именно он идёт в личный рекорд по этому виду.
-Откройте «Записать улов» (＋) и меняйте количество — поля веса подстроятся.</p>
+<p class="pitch">Прототип <b>v5</b> · наживок можно выбрать <b>несколько</b> (бывает две — и на обе клюёт), список расширен,
+есть <b>«+ Своё»</b> для наживки и <b>«+ Свой вид»</b> для рыбы. Откройте «Записать улов» (＋): жмите наживки —
+включаются несколько; «+ Свой вид» и «+ Своё» добавляют свои варианты.</p>
 
 <div class="phone">
   <div class="statusbar"><span>9:41</span><span>Рыбаки · @Ribaku_bot</span><span>100%</span></div>
@@ -320,19 +322,23 @@
   }
   document.querySelectorAll('.tab').forEach(function(t){t.addEventListener('click',function(){go(t.dataset.go);});});
 
-  var SPECIES=["Щука","Окунь","Судак","Лещ","Плотва","Карась","Сом","Карп","Голавль","Жерех"];
-  var BAITS=["Блесна","Воблер","Силикон","Червь","Мормышка","Живец","Кукуруза"];
+  var SPECIES=["Щука","Окунь","Судак","Лещ","Плотва","Карась","Сом","Карп","Голавль","Жерех","Налим","Форель","Хариус","Язь","Линь"];
+  var customSpecies=[];
+  var BAITS=["Блесна","Воблер","Силикон","Джиг","Балансир","Вертушка","Живец","Червь","Опарыш","Мотыль","Мормышка","Кукуруза","Тесто","Бойлы"];
+  var customBaits=[];
   var unit="шт";
   // Текущие личные рекорды по видам (вес самой крупной особи, кг) — демо.
   var PB={"Щука":3.0,"Окунь":0.35,"Судак":2.4,"Плотва":0.20,"Лещ":1.5,"Карась":0.5,"Сом":8,"Карп":3,"Голавль":0.6,"Жерех":1.5};
   var entries=[
-    {sp:"Щука",qty:1,total:"",biggest:"3.2",bait:"Блесна"},
-    {sp:"Окунь",qty:5,total:"0.9",biggest:"0.42",bait:"Мормышка"}
+    {sp:"Щука",qty:1,total:"",biggest:"3.2",baits:["Блесна"]},
+    {sp:"Окунь",qty:5,total:"0.9",biggest:"0.42",baits:["Мормышка","Червь"]}
   ];
   function setUnit(u,el){unit=u;el.parentElement.querySelectorAll('.u').forEach(function(x){x.classList.remove('on');});el.classList.add('on');}
-  function addSp(sp){if(entries.find(function(e){return e.sp===sp;}))return;entries.push({sp:sp,qty:1,total:"",biggest:"",bait:""});render();}
+  function addSp(sp){if(entries.find(function(e){return e.sp===sp;}))return;entries.push({sp:sp,qty:1,total:"",biggest:"",baits:[]});render();}
+  function addCustomSp(){var v=(prompt('Свой вид рыбы:')||'').trim();if(!v)return;if(customSpecies.indexOf(v)<0&&SPECIES.indexOf(v)<0)customSpecies.push(v);addSp(v);}
   function step(i,d){entries[i].qty=Math.max(1,entries[i].qty+d);render();}
-  function pickBait(i,b){entries[i].bait=b;render();}
+  function toggleBait(i,b){var arr=entries[i].baits;var k=arr.indexOf(b);if(k<0)arr.push(b);else arr.splice(k,1);render();}
+  function addCustomBait(i){var v=(prompt('Своя наживка/приманка:')||'').trim();if(!v)return;if(customBaits.indexOf(v)<0&&BAITS.indexOf(v)<0)customBaits.push(v);if(entries[i].baits.indexOf(v)<0)entries[i].baits.push(v);render();}
   function rm(i){entries.splice(i,1);render();}
   function setTotal(i,v){entries[i].total=v;refreshDerived();}
   function setBiggest(i,v){entries[i].biggest=v;refreshDerived();}
@@ -342,11 +348,13 @@
 
   function render(){
     var pk=document.getElementById('picker');pk.innerHTML='';
-    SPECIES.forEach(function(s){if(entries.find(function(e){return e.sp===s;}))return;
+    SPECIES.concat(customSpecies).forEach(function(s){if(entries.find(function(e){return e.sp===s;}))return;
       var c=document.createElement('div');c.className='achip';c.textContent='+ '+s;c.onclick=function(){addSp(s);};pk.appendChild(c);});
+    var own=document.createElement('div');own.className='achip add';own.textContent='+ Свой вид';own.onclick=addCustomSp;pk.appendChild(own);
     var box=document.getElementById('entries');box.innerHTML='';
     entries.forEach(function(e,i){
-      var baits=BAITS.map(function(b){return '<span class="bchip'+(e.bait===b?' on':'')+'" onclick="pickBait('+i+',\''+b+'\')">'+b+'</span>';}).join('');
+      var baits=BAITS.concat(customBaits).map(function(b){return '<span class="bchip'+(e.baits.indexOf(b)>=0?' on':'')+'" onclick="toggleBait('+i+',\''+b.replace(/'/g,"\\'")+'\')">'+b+'</span>';}).join('')+
+        '<span class="bchip add" onclick="addCustomBait('+i+')">+ Своё</span>';
       var wfields;
       if(e.qty>1){
         wfields='<div class="wlab">Общий вес улова этого вида</div>'+
@@ -362,6 +370,7 @@
         '<div class="row" style="margin-top:9px"><div class="stepper"><button onclick="step('+i+',-1)">−</button><span class="n">'+e.qty+'</span><button onclick="step('+i+',1)">＋</button></div><span class="sub">штук</span></div>'+
         wfields+
         '<div class="newrec" id="hint'+i+'" style="display:none"></div>'+
+        '<div class="baitlab">На что ловилось (можно несколько)</div>'+
         '<div class="baitrow">'+baits+'</div>';
       box.appendChild(d);
     });
