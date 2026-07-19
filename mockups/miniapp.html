@@ -1,596 +1,378 @@
-<title>Рыбаки — прототип mini app</title>
+<title>Рыбаки — прототип v2</title>
 <style>
-  :root {
-    --bg: #e9f0ef;
-    --surface: #ffffff;
-    --surface-2: #f2f7f6;
-    --ink: #0f1e20;
-    --ink-2: #5c6d6e;
-    --line: #dde6e5;
-    --accent: #0fa38c;
-    --accent-strong: #0b8474;
-    --accent-ink: #ffffff;
-    --amber: #e0912a;
-    --good: #2c9d66;
-    --good-bg: #e2f3ea;
-    --idle: #93a3a3;
-    --water-1: #cbe7e6;
-    --water-2: #a9d8d5;
-    --shadow: 0 6px 22px rgba(15, 40, 40, 0.10);
-    --radius: 18px;
-    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  :root{
+    --bg:#eceeec; --surface:#ffffff; --surface-2:#f1f3f0; --ink:#1b2320; --ink-2:#6c7772;
+    --line:#e0e3df; --accent:#2f7d54; --accent-2:#276a48; --accent-ink:#ffffff;
+    --record:#c67e2a; --record-bg:#f6ecdc; --miss:#8a938f; --good:#2f7d54;
+    --blue:#2f6fd0; --radius:14px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0b1517;
-      --surface: #122528;
-      --surface-2: #0e1e20;
-      --ink: #e9f1f0;
-      --ink-2: #8ba1a1;
-      --line: #21393b;
-      --accent: #22b79e;
-      --accent-strong: #1a9c86;
-      --accent-ink: #04201b;
-      --amber: #e6a949;
-      --good: #38b579;
-      --good-bg: #12332a;
-      --idle: #5c7273;
-      --water-1: #123c3c;
-      --water-2: #17514f;
-      --shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
-    }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#121613; --surface:#1a201d; --surface-2:#141a17; --ink:#e8ede9; --ink-2:#94a09a;
+    --line:#28312c; --accent:#3d9968; --accent-2:#347f57; --accent-ink:#08130d;
+    --record:#d99640; --record-bg:#2a2115; --miss:#6a746f; --good:#3d9968; --blue:#4f86e0;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#121613; --surface:#1a201d; --surface-2:#141a17; --ink:#e8ede9; --ink-2:#94a09a;
+    --line:#28312c; --accent:#3d9968; --accent-2:#347f57; --accent-ink:#08130d;
+    --record:#d99640; --record-bg:#2a2115; --miss:#6a746f; --good:#3d9968; --blue:#4f86e0;
   }
-  :root[data-theme="dark"] {
-    --bg: #0b1517; --surface: #122528; --surface-2: #0e1e20; --ink: #e9f1f0;
-    --ink-2: #8ba1a1; --line: #21393b; --accent: #22b79e; --accent-strong: #1a9c86;
-    --accent-ink: #04201b; --amber: #e6a949; --good: #38b579; --good-bg: #12332a;
-    --idle: #5c7273; --water-1: #123c3c; --water-2: #17514f;
-    --shadow: 0 6px 22px rgba(0, 0, 0, 0.4);
+  :root[data-theme="light"]{
+    --bg:#eceeec; --surface:#ffffff; --surface-2:#f1f3f0; --ink:#1b2320; --ink-2:#6c7772;
+    --line:#e0e3df; --accent:#2f7d54; --accent-2:#276a48; --accent-ink:#ffffff;
+    --record:#c67e2a; --record-bg:#f6ecdc; --miss:#8a938f; --good:#2f7d54; --blue:#2f6fd0;
   }
-  :root[data-theme="light"] {
-    --bg: #e9f0ef; --surface: #ffffff; --surface-2: #f2f7f6; --ink: #0f1e20;
-    --ink-2: #5c6d6e; --line: #dde6e5; --accent: #0fa38c; --accent-strong: #0b8474;
-    --accent-ink: #ffffff; --amber: #e0912a; --good: #2c9d66; --good-bg: #e2f3ea;
-    --idle: #93a3a3; --water-1: #cbe7e6; --water-2: #a9d8d5;
-    --shadow: 0 6px 22px rgba(15, 40, 40, 0.10);
-  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:18px 12px 36px;gap:12px;-webkit-font-smoothing:antialiased;}
+  .pitch{max-width:390px;width:100%;text-align:center;color:var(--ink-2);font-size:13px;line-height:1.5;}
+  .pitch b{color:var(--ink);}
 
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: var(--font); color: var(--ink);
-    background:
-      radial-gradient(1200px 600px at 50% -10%, color-mix(in srgb, var(--accent) 12%, var(--bg)), var(--bg));
-    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-    padding: 20px 12px 40px; gap: 14px;
-  }
-  .pitch {
-    max-width: 390px; width: 100%; text-align: center; color: var(--ink-2);
-    font-size: 13px; line-height: 1.5;
-  }
-  .pitch b { color: var(--ink); }
+  .phone{width:390px;max-width:100%;height:788px;background:var(--bg);border-radius:28px;
+    box-shadow:0 1px 0 var(--line),0 10px 30px rgba(20,40,30,.10);overflow:hidden;
+    position:relative;display:flex;flex-direction:column;}
+  .statusbar{height:26px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;font-size:11px;font-weight:600;color:var(--ink-2);flex:none;}
 
-  /* ── Телефон ─────────────────────────────────────────── */
-  .phone {
-    width: 390px; max-width: 100%; height: 780px; background: var(--bg);
-    border-radius: 34px; box-shadow: var(--shadow), 0 0 0 1px var(--line);
-    overflow: hidden; position: relative; display: flex; flex-direction: column;
-  }
-  .statusbar {
-    height: 30px; display: flex; align-items: center; justify-content: space-between;
-    padding: 0 20px; font-size: 12px; font-weight: 600; color: var(--ink-2);
-    flex: none;
-  }
-  .statusbar .dots { letter-spacing: 2px; }
+  .topbar{flex:none;display:flex;align-items:center;gap:10px;padding:8px 16px 10px;
+    background:var(--surface);box-shadow:0 1px 0 var(--line);}
+  .topbar .title{font-size:19px;font-weight:800;letter-spacing:-.2px;}
+  .topbar .spacer{flex:1;}
+  .icobtn{width:34px;height:34px;border-radius:9px;background:var(--surface-2);display:grid;
+    place-items:center;font-size:16px;}
 
-  .topbar {
-    flex: none; display: flex; align-items: center; gap: 10px;
-    padding: 6px 16px 12px;
-  }
-  .topbar .title { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
-  .topbar .sub { font-size: 12px; color: var(--ink-2); margin-top: 1px; }
-  .topbar .spacer { flex: 1; }
-  .chip-round {
-    width: 38px; height: 38px; border-radius: 50%; background: var(--surface);
-    display: grid; place-items: center; font-size: 17px; box-shadow: 0 0 0 1px var(--line);
-  }
+  .screens{flex:1;position:relative;overflow:hidden;}
+  .screen{position:absolute;inset:0;overflow-y:auto;padding:14px 14px 96px;display:none;}
+  .screen.active{display:block;}
+  .screens::-webkit-scrollbar,.screen::-webkit-scrollbar{width:0;}
 
-  /* ── Экраны ──────────────────────────────────────────── */
-  .screens { flex: 1; position: relative; overflow: hidden; }
-  .screen {
-    position: absolute; inset: 0; overflow-y: auto; padding: 2px 14px 96px;
-    display: none; -webkit-overflow-scrolling: touch;
-  }
-  .screen.active { display: block; animation: fade .22s ease; }
-  @keyframes fade { from { opacity: 0; transform: translateY(6px);} to {opacity:1; transform:none;} }
-  @media (prefers-reduced-motion: reduce) { .screen.active { animation: none; } }
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px;margin-bottom:12px;}
+  .row{display:flex;align-items:center;gap:12px;}
+  .muted{color:var(--ink-2);}
+  .tnum{font-variant-numeric:tabular-nums;}
+  .sec{font-size:13px;font-weight:800;margin:2px 2px 9px;letter-spacing:-.1px;}
+  .sub{font-size:12.5px;color:var(--ink-2);}
 
-  .card {
-    background: var(--surface); border-radius: var(--radius); box-shadow: 0 0 0 1px var(--line);
-    padding: 14px; margin-bottom: 12px;
-  }
-  .row { display: flex; align-items: center; gap: 12px; }
-  .muted { color: var(--ink-2); }
-  .tnum { font-variant-numeric: tabular-nums; }
-  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .09em; color: var(--ink-2); font-weight: 700; }
+  .btn{display:block;width:100%;text-align:center;background:var(--accent);color:var(--accent-ink);
+    font-weight:800;font-size:16px;padding:15px;border-radius:12px;cursor:pointer;border:none;}
+  .btn.big{font-size:17px;padding:17px;}
+  .btn.ghost{background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);}
+  .btn.gray{background:var(--surface-2);color:var(--ink);}
 
-  /* ── Карта ───────────────────────────────────────────── */
-  .mapwrap { position: relative; border-radius: var(--radius); overflow: hidden;
-    box-shadow: 0 0 0 1px var(--line); margin-bottom: 12px; }
-  .mapwrap svg { display: block; width: 100%; height: 340px; }
-  .filters { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; }
-  .filters::-webkit-scrollbar { display: none; }
-  .fchip {
-    flex: none; padding: 8px 13px; border-radius: 999px; font-size: 13px; font-weight: 600;
-    background: var(--surface); box-shadow: 0 0 0 1px var(--line); color: var(--ink-2);
-    cursor: pointer; user-select: none; white-space: nowrap;
-  }
-  .fchip.on { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
-  .maptag {
-    position: absolute; left: 14px; bottom: 14px; right: 14px; background: var(--surface);
-    border-radius: 14px; padding: 11px 13px; box-shadow: var(--shadow); display: flex;
-    align-items: center; gap: 11px;
-  }
-  .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--good); position: relative; }
-  .pulse-dot::after { content:""; position:absolute; inset:-6px; border-radius:50%;
-    border: 2px solid var(--good); opacity:.5; animation: ring 1.8s ease-out infinite; }
-  @keyframes ring { to { transform: scale(2.2); opacity: 0; } }
-  @media (prefers-reduced-motion: reduce){ .pulse-dot::after{ animation:none; } }
+  /* Профиль */
+  .phead{display:flex;gap:13px;align-items:center;}
+  .ava{width:58px;height:58px;border-radius:50%;flex:none;display:grid;place-items:center;
+    color:#fff;font-weight:800;font-size:19px;background:var(--accent);}
+  .ava.sm{width:36px;height:36px;font-size:13px;}
+  .lvl{font-size:12px;font-weight:700;color:var(--accent);}
+  .xp{height:7px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:9px;border:1px solid var(--line);}
+  .xp>i{display:block;height:100%;width:64%;background:var(--accent);}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 6px;text-align:center;}
+  .stat b{display:block;font-size:20px;font-weight:800;letter-spacing:-.4px;}
+  .stat span{font-size:11px;color:var(--ink-2);}
+  .record{display:flex;align-items:center;gap:12px;background:var(--record-bg);border:1px solid transparent;
+    border-radius:12px;padding:12px;}
+  .record .rico{width:38px;height:38px;border-radius:10px;background:var(--surface);display:grid;place-items:center;font-size:20px;}
+  .badges{display:flex;gap:9px;overflow-x:auto;padding-bottom:2px;}
+  .badges::-webkit-scrollbar{height:0;}
+  .bd{flex:none;width:70px;text-align:center;}
+  .bd .ic{width:52px;height:52px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);
+    display:grid;place-items:center;font-size:24px;margin:0 auto 5px;}
+  .bd.lock .ic{opacity:.4;}
+  .bd small{font-size:10.5px;color:var(--ink-2);line-height:1.15;display:block;}
+  .hist{display:flex;align-items:center;gap:11px;padding:10px 2px;border-bottom:1px solid var(--line);}
+  .hist:last-child{border-bottom:none;}
+  .hist .ic{width:34px;height:34px;border-radius:9px;background:var(--surface-2);display:grid;place-items:center;font-size:16px;flex:none;}
 
-  /* ── Лента ───────────────────────────────────────────── */
-  .avatar {
-    width: 42px; height: 42px; border-radius: 50%; flex: none; display: grid;
-    place-items: center; color: #fff; font-weight: 800; font-size: 15px;
-  }
-  .avatar.sm { width: 34px; height: 34px; font-size: 13px; }
-  .badge-catch { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
-    background: var(--good-bg); color: var(--good); }
-  .badge-miss { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
-    background: color-mix(in srgb, var(--idle) 20%, transparent); color: var(--ink-2); }
-  .photo {
-    height: 150px; border-radius: 13px; margin: 11px 0; display: grid; place-items: center;
-    font-size: 40px; color: rgba(255,255,255,.85);
-  }
-  .metaline { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--ink-2); margin-top: 4px; }
-  .react { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; color: var(--ink-2); font-weight: 600; }
+  /* Лента */
+  .catch-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--surface-2);color:var(--good);}
+  .miss-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--surface-2);color:var(--miss);}
+  .rec-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:var(--record-bg);color:var(--record);}
+  .photo{height:150px;border-radius:11px;margin:11px 0;display:grid;place-items:center;font-size:40px;
+    background:var(--surface-2);color:var(--ink-2);}
+  .kv{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .kv .k{font-size:12.5px;background:var(--surface-2);border-radius:8px;padding:5px 9px;font-weight:600;}
+  .react{display:flex;gap:16px;margin-top:11px;font-size:13px;color:var(--ink-2);font-weight:600;}
 
-  /* ── Отчёт ───────────────────────────────────────────── */
-  .toggle2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-  .tbtn { padding: 16px; border-radius: 14px; text-align: center; font-weight: 800; font-size: 15px;
-    background: var(--surface); box-shadow: 0 0 0 1px var(--line); cursor: pointer; color: var(--ink-2); }
-  .tbtn .big { font-size: 22px; display:block; margin-bottom: 3px; }
-  .tbtn.on-good { background: var(--good); color: #fff; box-shadow: none; }
-  .tbtn.on-miss { background: var(--idle); color: #fff; box-shadow: none; }
-  .label { font-size: 13px; font-weight: 700; margin: 4px 2px 9px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-  .chip {
-    padding: 9px 13px; border-radius: 999px; font-size: 13.5px; font-weight: 600; cursor: pointer;
-    background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); color: var(--ink); user-select: none;
-  }
-  .chip.on { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
-  .chip.star::before { content: "⭐ "; }
-  .addbox { height: 86px; border-radius: 14px; border: 1.5px dashed var(--line); display: grid;
-    place-items: center; color: var(--ink-2); font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-  .fakeinput { background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); border-radius: 12px;
-    padding: 12px 13px; color: var(--ink-2); font-size: 13.5px; margin-bottom: 16px; }
-  .zone-note { display: flex; gap: 9px; align-items: center; font-size: 12.5px; color: var(--ink-2);
-    background: var(--surface-2); border-radius: 12px; padding: 11px; margin-bottom: 16px; }
-  .cta { background: var(--accent); color: var(--accent-ink); text-align: center; font-weight: 800;
-    font-size: 16px; padding: 16px; border-radius: 15px; box-shadow: var(--shadow); cursor: pointer; }
+  /* Отчёт */
+  .unit{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface-2);border-radius:11px;padding:4px;margin-bottom:14px;}
+  .unit .u{padding:9px;text-align:center;border-radius:8px;font-weight:700;font-size:14px;color:var(--ink-2);cursor:pointer;}
+  .unit .u.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .entry{border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:10px;background:var(--surface);}
+  .entry .top{display:flex;align-items:center;gap:9px;}
+  .entry .fish{font-weight:800;font-size:15px;flex:1;}
+  .star{font-size:18px;cursor:pointer;filter:grayscale(1);opacity:.5;}
+  .star.on{filter:none;opacity:1;}
+  .rm{color:var(--ink-2);font-size:18px;cursor:pointer;padding:0 2px;}
+  .stepper{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+  .stepper button{width:34px;height:34px;border:none;background:var(--surface-2);font-size:18px;color:var(--ink);cursor:pointer;}
+  .stepper .n{width:34px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;}
+  .winput{flex:1;border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:var(--surface);color:var(--ink);font-size:14px;font-family:inherit;min-width:0;}
+  .baitrow{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;}
+  .bchip{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);cursor:pointer;}
+  .bchip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+  .addchips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+  .achip{font-size:13.5px;font-weight:600;padding:8px 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line);cursor:pointer;}
+  .totals{background:var(--surface-2);border-radius:11px;padding:12px 13px;margin-bottom:12px;font-size:14px;}
+  .totals b{font-weight:800;}
+  .misslink{text-align:center;font-size:13px;color:var(--ink-2);font-weight:600;margin:14px 0 4px;cursor:pointer;}
 
-  /* ── Рейтинг ─────────────────────────────────────────── */
-  .rank-row { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--line); }
-  .rank-row:last-child { border-bottom: none; }
-  .rank-n { width: 24px; text-align: center; font-weight: 800; color: var(--ink-2); font-size: 15px; }
-  .rank-row.me { background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 12px; }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-  .seg .s { text-align: center; padding: 9px; border-radius: 11px; font-size: 13px; font-weight: 700;
-    background: var(--surface); box-shadow: 0 0 0 1px var(--line); color: var(--ink-2); cursor: pointer; }
-  .seg .s.on { background: var(--ink); color: var(--bg); box-shadow: none; }
+  /* Рейтинг */
+  .tabs2{display:flex;gap:6px;background:var(--surface-2);border-radius:11px;padding:4px;margin-bottom:12px;}
+  .tabs2 .t{flex:1;text-align:center;padding:9px;border-radius:8px;font-weight:700;font-size:13.5px;color:var(--ink-2);cursor:pointer;}
+  .tabs2 .t.on{background:var(--surface);color:var(--ink);}
+  .rrow{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line);}
+  .rrow:last-child{border-bottom:none;}
+  .rn{width:22px;text-align:center;font-weight:800;color:var(--ink-2);}
+  .rrow.me{background:var(--surface-2);border-radius:10px;padding:11px 8px;}
 
-  /* ── Профиль ─────────────────────────────────────────── */
-  .prof-head { display: flex; gap: 14px; align-items: center; margin-bottom: 4px; }
-  .lvl { font-size: 12px; font-weight: 800; color: var(--amber); }
-  .xpbar { height: 8px; border-radius: 999px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line);
-    overflow: hidden; margin-top: 10px; }
-  .xpbar > i { display: block; height: 100%; width: 64%;
-    background: linear-gradient(90deg, var(--accent), var(--amber)); }
-  .stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-  .stat { background: var(--surface); border-radius: 14px; box-shadow: 0 0 0 1px var(--line); padding: 12px 8px; text-align: center; }
-  .stat b { display: block; font-size: 21px; font-weight: 800; letter-spacing: -.5px; }
-  .stat span { font-size: 11px; color: var(--ink-2); }
-  .badges { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
-  .badges::-webkit-scrollbar { display: none; }
-  .badge-a { flex: none; width: 72px; text-align: center; }
-  .badge-a .ic { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center;
-    font-size: 26px; background: var(--surface-2); box-shadow: 0 0 0 1px var(--line); margin: 0 auto 6px; }
-  .badge-a.lock .ic { opacity: .35; }
-  .badge-a small { font-size: 10.5px; color: var(--ink-2); line-height: 1.2; display: block; }
-  .hist { display: flex; align-items: center; gap: 11px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
-  .hist:last-child { border-bottom: none; }
-  .hist .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-size: 17px;
-    background: var(--surface-2); flex: none; }
-
-  /* ── Нижнее меню ─────────────────────────────────────── */
-  .tabbar {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 74px; background: var(--surface);
-    box-shadow: 0 -1px 0 var(--line); display: flex; align-items: stretch; padding: 0 6px 8px;
-  }
-  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; font-size: 10.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; padding-top: 8px; }
-  .tab .ic { font-size: 21px; line-height: 1; filter: grayscale(1); opacity: .7; }
-  .tab.on { color: var(--accent); }
-  .tab.on .ic { filter: none; opacity: 1; }
-  .tab.center { flex: none; width: 64px; }
-  .tab.center .fab { width: 54px; height: 54px; border-radius: 50%; background: var(--accent);
-    color: var(--accent-ink); display: grid; place-items: center; font-size: 27px; font-weight: 300;
-    margin-top: -20px; box-shadow: var(--shadow); }
-
-  /* ── Нижний лист (зона) ──────────────────────────────── */
-  .sheet-bg { position: absolute; inset: 0; background: rgba(4,15,15,.4); opacity: 0; pointer-events: none;
-    transition: opacity .25s; z-index: 20; }
-  .sheet-bg.open { opacity: 1; pointer-events: auto; }
-  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--surface);
-    border-radius: 22px 22px 0 0; padding: 8px 18px 24px; transform: translateY(100%);
-    transition: transform .28s cubic-bezier(.2,.8,.2,1); z-index: 21; box-shadow: 0 -8px 30px rgba(0,0,0,.2); }
-  .sheet.open { transform: none; }
-  .grabber { width: 40px; height: 4px; border-radius: 99px; background: var(--line); margin: 6px auto 14px; }
-  @media (prefers-reduced-motion: reduce){ .sheet, .sheet-bg { transition: none; } }
-
-  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--ink-2); margin: 2px 2px 12px; }
-  .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  /* меню */
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:66px;background:var(--surface);
+    border-top:1px solid var(--line);display:flex;padding:0 4px;}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    font-size:10.5px;font-weight:600;color:var(--ink-2);cursor:pointer;padding-top:7px;}
+  .tab .ic{font-size:20px;filter:grayscale(1);opacity:.6;}
+  .tab.on{color:var(--accent);}
+  .tab.on .ic{filter:none;opacity:1;}
+  .tab.center{flex:none;width:64px;}
+  .tab.center .fab{width:50px;height:50px;border-radius:14px;background:var(--accent);color:var(--accent-ink);
+    display:grid;place-items:center;font-size:26px;font-weight:300;margin-top:-16px;
+    box-shadow:0 4px 12px rgba(30,90,60,.35);}
 </style>
 
-<p class="pitch">
-  Черновой прототип мини-приложения <b>«Рыбаки»</b> внутри Telegram. Полистайте вкладки внизу,
-  потыкайте фильтры на карте, вид рыбы в отчёте, точку на карте. Это макет для обсуждения —
-  данные придуманные, дизайн сырой. От него будем отталкиваться.
-</p>
+<p class="pitch">Прототип <b>v2</b> · дизайн проще и «человечнее». Карту убрали. Старт — профиль рыбака,
+кнопка «Записать улов», в отчёте несколько видов с количеством/весом и своей наживкой, рекорды и друзья.
+Полистайте вкладки внизу, добавьте вид в отчёте (＋).</p>
 
 <div class="phone">
-  <div class="statusbar">
-    <span>9:41</span>
-    <span class="dots">Ribaku_bot · mini app</span>
-    <span>▮▮▮ 100%</span>
-  </div>
-
+  <div class="statusbar"><span>9:41</span><span>Рыбаки · @Ribaku_bot</span><span>▮▮▮ 100%</span></div>
   <div class="topbar">
-    <div>
-      <div class="title" id="scr-title">Карта клёва</div>
-      <div class="sub" id="scr-sub">Зона Икшинское вдхр. · сегодня</div>
-    </div>
-    <div class="spacer"></div>
-    <div class="chip-round">🔔</div>
-    <div class="chip-round">⚙️</div>
+    <div class="title" id="ttl">Мой профиль</div><div class="spacer"></div>
+    <div class="icobtn">🔔</div><div class="icobtn">⚙️</div>
   </div>
 
   <div class="screens">
 
-    <!-- ═══ КАРТА ═══ -->
-    <section class="screen active" data-screen="map">
-      <div class="filters">
-        <div class="fchip on">Все</div>
-        <div class="fchip">🐊 Щука</div>
-        <div class="fchip">🐟 Окунь</div>
-        <div class="fchip">🎣 Судак</div>
-        <div class="fchip">🐠 Лещ</div>
-        <div class="fchip">Плотва</div>
+    <!-- ПРОФИЛЬ (стартовый) -->
+    <section class="screen active" data-s="profile">
+      <div class="card">
+        <div class="phead">
+          <div class="ava">ВЫ</div>
+          <div style="flex:1">
+            <div style="font-weight:800;font-size:17px">Ваш позывной</div>
+            <div class="lvl">🎣 Рыбак · 3 уровень</div>
+            <div class="sub" style="margin-top:2px">с нами 2 месяца</div>
+          </div>
+        </div>
+        <div class="xp"><i></i></div>
+        <div class="sub" style="margin-top:6px">640 / 1000 очков до 4 уровня</div>
       </div>
 
-      <div class="mapwrap">
-        <svg viewBox="0 0 360 340" role="img" aria-label="Схематичная карта водоёма с зонами и отметками уловов">
-          <defs>
-            <linearGradient id="water" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="var(--water-1)"/>
-              <stop offset="1" stop-color="var(--water-2)"/>
-            </linearGradient>
-            <radialGradient id="heat" cx="50%" cy="50%" r="50%">
-              <stop offset="0" stop-color="var(--good)" stop-opacity=".55"/>
-              <stop offset="1" stop-color="var(--good)" stop-opacity="0"/>
-            </radialGradient>
-          </defs>
-          <rect width="360" height="340" fill="var(--surface-2)"/>
-          <!-- водоём -->
-          <path d="M-10,120 C60,90 90,150 150,140 C210,130 250,60 330,80 C360,88 370,160 340,210
-                   C300,275 250,250 190,270 C120,292 70,260 20,285 C-10,300 -20,180 -10,120 Z"
-                fill="url(#water)"/>
-          <!-- сетка зон -->
-          <g stroke="var(--line)" stroke-width="1" opacity=".7">
-            <path d="M90,0 V340 M180,0 V340 M270,0 V340 M0,85 H360 M0,170 H360 M0,255 H360"/>
-          </g>
-          <!-- тепло «клюёт» -->
-          <circle cx="245" cy="150" r="60" fill="url(#heat)"/>
-          <!-- пины уловов -->
-          <g font-size="13" text-anchor="middle">
-            <g><circle cx="245" cy="150" r="13" fill="var(--good)"/><text y="155" x="245" fill="#fff">🐊</text></g>
-            <g><circle cx="215" cy="185" r="11" fill="var(--good)"/><text y="189" x="215" fill="#fff">🐟</text></g>
-            <g><circle cx="278" cy="120" r="11" fill="var(--good)"/><text y="124" x="278" fill="#fff">🎣</text></g>
-            <g><circle cx="120" cy="150" r="11" fill="var(--amber)"/><text y="154" x="120" fill="#fff">🐟</text></g>
-            <g><circle cx="150" cy="235" r="10" fill="var(--idle)"/><text y="239" x="150" fill="#fff">·</text></g>
-          </g>
-          <!-- вы здесь -->
-          <g>
-            <circle cx="95" cy="215" r="7" fill="#2a7fff"/>
-            <circle cx="95" cy="215" r="12" fill="none" stroke="#2a7fff" stroke-width="2" opacity=".5"/>
-          </g>
-        </svg>
+      <button class="btn big" onclick="go('report')">＋ Записать улов</button>
+      <div style="height:12px"></div>
 
-        <div class="maptag" onclick="openSheet()">
-          <span class="pulse-dot"></span>
+      <div class="sec">Личный рекорд</div>
+      <div class="card" style="padding:12px">
+        <div class="record">
+          <div class="rico">🐊</div>
           <div style="flex:1">
-            <div style="font-weight:800; font-size:14px">Тут сейчас клюёт 🔥</div>
-            <div class="muted" style="font-size:12px">Зона B-3 · 7 отчётов за 3 ч · 71% с уловом</div>
+            <div style="font-weight:800">Щука — 3.2 кг</div>
+            <div class="sub">Икшинское вдхр. · 12 июля · на Блесну</div>
           </div>
-          <span class="muted">›</span>
+          <span class="rec-badge">РЕКОРД</span>
         </div>
       </div>
 
-      <div class="legend">
-        <span><i style="background:var(--good)"></i>клюёт</span>
-        <span><i style="background:var(--amber)"></i>редко</span>
-        <span><i style="background:var(--idle)"></i>тихо</span>
-        <span><i style="background:#2a7fff"></i>вы здесь</span>
+      <div class="stats">
+        <div class="stat"><b class="tnum">128</b><span>рыб поймано</span></div>
+        <div class="stat"><b class="tnum">47</b><span>кг всего</span></div>
+        <div class="stat"><b class="tnum">33</b><span>поездки</span></div>
       </div>
 
-      <div class="card" onclick="openSheet()" style="cursor:pointer">
-        <div class="row">
-          <div style="font-size:24px">📊</div>
-          <div style="flex:1">
-            <div style="font-weight:800">Сводка по зоне B-3</div>
-            <div class="muted" style="font-size:12.5px">Нажмите — детали, кто ловил и на что</div>
-          </div>
-          <span class="muted">›</span>
+      <div class="sec">Достижения</div>
+      <div class="card">
+        <div class="badges">
+          <div class="bd"><div class="ic">🥇</div><small>Первый улов</small></div>
+          <div class="bd"><div class="ic">🐊</div><small>Гроза щук</small></div>
+          <div class="bd"><div class="ic">⚖️</div><small>10 кг за день</small></div>
+          <div class="bd lock"><div class="ic">🏆</div><small>5 рекордов</small></div>
+          <div class="bd lock"><div class="ic">❄️</div><small>Зимняя</small></div>
         </div>
+      </div>
+
+      <div class="sec">Мой дневник</div>
+      <div class="card" style="padding:4px 14px">
+        <div class="hist"><div class="ic">🐊</div><div style="flex:1"><b>Щука 3.2 кг + Окунь ×5</b><div class="sub">сегодня · Блесна, Мормышка</div></div><span class="catch-badge">УЛОВ</span></div>
+        <div class="hist"><div class="ic">🐟</div><div style="flex:1"><b>Плотва ×12</b> · 1.4 кг<div class="sub">вчера · Поплавок</div></div><span class="catch-badge">УЛОВ</span></div>
+        <div class="hist"><div class="ic">·</div><div style="flex:1"><b>Без улова</b><div class="sub">3 дня назад · Воблер</div></div><span class="miss-badge">ПУСТО</span></div>
       </div>
     </section>
 
-    <!-- ═══ ЛЕНТА ═══ -->
-    <section class="screen" data-screen="feed">
+    <!-- ЛЕНТА -->
+    <section class="screen" data-s="feed">
       <article class="card">
         <div class="row">
-          <div class="avatar" style="background:#2f8f7e">ИК</div>
-          <div style="flex:1">
-            <div style="font-weight:800">Иван Крючков <span class="lvl">· 7 ур.</span></div>
-            <div class="muted" style="font-size:12px">Зона B-3 · 40 мин назад</div>
-          </div>
-          <span class="badge-catch">УЛОВ</span>
+          <div class="ava sm" style="background:#2f7d54">ИК</div>
+          <div style="flex:1"><div style="font-weight:800">Иван Крючков <span class="lvl">· 7 ур.</span></div><div class="sub">Икшинское вдхр. · 40 мин назад</div></div>
+          <span class="rec-badge">🏆 РЕКОРД</span>
         </div>
-        <div class="photo" style="background:linear-gradient(135deg,#2f8f7e,#1c5c52)">🐊</div>
-        <div style="font-weight:700">Щука ~3.2 кг на Блесну (колебалка)</div>
-        <div class="metaline">
-          <span>🌤 +18°, ветер 3 м/с</span><span>🌒 Растущий серп</span><span>📍 гл. 2.5 м</span>
+        <div class="photo">🐊</div>
+        <div style="font-weight:700">Щука 3.2 кг + Судак ×2 (1.8 кг)</div>
+        <div class="kv">
+          <span class="k">⚖️ 5.0 кг</span><span class="k">🐟 3 шт</span><span class="k">🥇 крупная: Щука 3.2</span><span class="k">🎣 Блесна</span>
         </div>
         <div class="react"><span>❤️ 24</span><span>💬 6</span><span>↗ Поделиться</span></div>
       </article>
 
       <article class="card">
         <div class="row">
-          <div class="avatar" style="background:#c67b2a">ОР</div>
-          <div style="flex:1">
-            <div style="font-weight:800">Ольга Р. <span class="lvl">· 4 ур.</span></div>
-            <div class="muted" style="font-size:12px">Зона B-2 · 1 ч назад</div>
-          </div>
-          <span class="badge-catch">УЛОВ</span>
+          <div class="ava sm" style="background:#c67e2a">ОР</div>
+          <div style="flex:1"><div style="font-weight:800">Ольга Р. <span class="lvl">· 4 ур.</span></div><div class="sub">1 ч назад</div></div>
+          <span class="catch-badge">УЛОВ</span>
         </div>
-        <div style="font-weight:700; margin-top:6px">Окунь, 5 шт на Мормышку</div>
-        <div class="metaline"><span>🌤 +18°</span><span>🌒 Растущий серп</span><span>💬 «стоял у камыша»</span></div>
+        <div style="font-weight:700;margin-top:6px">Окунь ×5, Плотва ×8</div>
+        <div class="kv"><span class="k">🐟 13 шт</span><span class="k">⚖️ 2.1 кг</span><span class="k">🎣 Мормышка</span></div>
         <div class="react"><span>❤️ 11</span><span>💬 2</span><span>↗ Поделиться</span></div>
       </article>
 
       <article class="card">
         <div class="row">
-          <div class="avatar" style="background:#5c7273">СП</div>
-          <div style="flex:1">
-            <div style="font-weight:800">Сергей П. <span class="lvl">· 9 ур.</span></div>
-            <div class="muted" style="font-size:12px">Зона A-1 · 2 ч назад</div>
-          </div>
-          <span class="badge-miss">НЕ КЛЕВАЛО</span>
+          <div class="ava sm" style="background:#8a938f">СП</div>
+          <div style="flex:1"><div style="font-weight:800">Сергей П. <span class="lvl">· 9 ур.</span></div><div class="sub">2 ч назад</div></div>
+          <span class="miss-badge">ПУСТО</span>
         </div>
-        <div style="font-weight:700; margin-top:6px">Пусто. Пробовал воблер и силикон</div>
-        <div class="metaline"><span>честный отчёт тоже в плюс к рейтингу 👍</span></div>
+        <div style="font-weight:700;margin-top:6px">Не клевало. Воблер, силикон</div>
+        <div class="sub" style="margin-top:6px">честный отчёт тоже в плюс к рейтингу 👍</div>
         <div class="react"><span>❤️ 8</span><span>💬 4</span><span>↗ Поделиться</span></div>
       </article>
     </section>
 
-    <!-- ═══ ОТЧЁТ ═══ -->
-    <section class="screen" data-screen="report">
-      <div class="eyebrow" style="margin:6px 2px 10px">Новый отчёт · 20 сек</div>
-      <div class="toggle2">
-        <div class="tbtn on-good" onclick="pick(this,'good')"><span class="big">🎣</span>Поймал</div>
-        <div class="tbtn" onclick="pick(this,'miss')"><span class="big">🚫</span>Не клевало</div>
+    <!-- ОТЧЁТ -->
+    <section class="screen" data-s="report">
+      <div class="sec">Учитывать улов в</div>
+      <div class="unit">
+        <div class="u on" onclick="setUnit('шт',this)">Штуках</div>
+        <div class="u" onclick="setUnit('кг',this)">Килограммах</div>
       </div>
 
-      <div class="label">Какая рыба?</div>
-      <div class="chips">
-        <span class="chip on star">Щука</span>
-        <span class="chip">Окунь</span><span class="chip">Судак</span><span class="chip">Лещ</span>
-        <span class="chip">Плотва</span><span class="chip">Карась</span><span class="chip">✍️ Своё</span>
-      </div>
+      <div class="sec">Что поймали? Можно несколько видов</div>
+      <div class="addchips" id="picker"></div>
 
-      <div class="label">Что сработало?</div>
-      <div class="chips">
-        <span class="chip on star">Блесна</span>
-        <span class="chip">Воблер</span><span class="chip">Силикон</span><span class="chip">Червь</span>
-        <span class="chip">Мормышка</span><span class="chip">✍️ Своё</span>
-      </div>
+      <div id="entries"></div>
 
-      <div class="label">Фото улова (по желанию)</div>
-      <div class="addbox">＋ добавить фото</div>
-      <div class="fakeinput">💬 Комментарий: что, где, как…</div>
+      <div class="totals" id="totals"></div>
 
-      <div class="zone-note">
-        <span style="font-size:16px">📍</span>
-        <span>Локация запишется как <b>зона ~1 км</b> (B-3). Точную точку бот не покажет никому — только вам.</span>
-      </div>
-
-      <div class="cta">Сохранить отчёт →</div>
-      <p class="muted" style="font-size:11.5px; text-align:center; margin:12px 6px 0">
-        За подтверждённый отчёт — опыт и бонусные дни премиума 🎁
-      </p>
+      <button class="btn" onclick="alert('Демо: улов сохранён. Фото и локация — на следующем шаге.')">Сохранить улов →</button>
+      <div class="misslink" onclick="alert('Демо: отмечен пустой день. Это тоже плюс к надёжности.')">Ничего не поймал — отметить пустой день</div>
     </section>
 
-    <!-- ═══ РЕЙТИНГ ═══ -->
-    <section class="screen" data-screen="rank">
-      <div class="seg">
-        <div class="s on" onclick="seg(this)">🏆 По уловам</div>
-        <div class="s" onclick="seg(this)">✅ По надёжности</div>
+    <!-- РЕЙТИНГ -->
+    <section class="screen" data-s="rank">
+      <div class="tabs2">
+        <div class="t on" onclick="rankTab(this,'friends')">👥 Друзья</div>
+        <div class="t" onclick="rankTab(this,'all')">🌍 Все</div>
       </div>
-      <div class="card" style="padding:6px 12px">
-        <div class="rank-row"><div class="rank-n" style="color:var(--amber)">1</div>
-          <div class="avatar sm" style="background:#5c7273">СП</div>
-          <div style="flex:1"><b>Сергей П.</b> <span class="lvl">9 ур.</span><div class="muted" style="font-size:12px">142 улова · 68%</div></div><div>🥇</div></div>
-        <div class="rank-row"><div class="rank-n">2</div>
-          <div class="avatar sm" style="background:#2f8f7e">ИК</div>
-          <div style="flex:1"><b>Иван Крючков</b> <span class="lvl">7 ур.</span><div class="muted" style="font-size:12px">118 уловов · 64%</div></div><div>🥈</div></div>
-        <div class="rank-row"><div class="rank-n">3</div>
-          <div class="avatar sm" style="background:#8a5cc2">МД</div>
-          <div style="flex:1"><b>Максим Д.</b> <span class="lvl">6 ур.</span><div class="muted" style="font-size:12px">97 уловов · 59%</div></div><div>🥉</div></div>
-        <div class="rank-row"><div class="rank-n">4</div>
-          <div class="avatar sm" style="background:#c67b2a">ОР</div>
-          <div style="flex:1"><b>Ольга Р.</b> <span class="lvl">4 ур.</span><div class="muted" style="font-size:12px">54 улова · 61%</div></div></div>
-        <div class="rank-row me"><div class="rank-n">12</div>
-          <div class="avatar sm" style="background:var(--accent)">ВЫ</div>
-          <div style="flex:1"><b>Вы</b> <span class="lvl">3 ур.</span><div class="muted" style="font-size:12px">18 уловов · 55%</div></div><div style="font-size:12px" class="muted">+2 ↑</div></div>
-      </div>
-      <p class="muted" style="font-size:12px; text-align:center; padding:0 10px">
-        Рейтинг по зоне / области / всей стране — переключается сверху. Надёжность растёт, когда
-        ваши отчёты совпадают с соседями (антифейк).
-      </p>
-    </section>
 
-    <!-- ═══ ПРОФИЛЬ ═══ -->
-    <section class="screen" data-screen="profile">
-      <div class="card">
-        <div class="prof-head">
-          <div class="avatar" style="width:60px;height:60px;font-size:20px;background:var(--accent)">ВЫ</div>
-          <div style="flex:1">
-            <div style="font-weight:800; font-size:18px">Ваш позывной</div>
-            <div class="lvl">🎣 Рыбак · 3 уровень</div>
-            <div class="muted" style="font-size:12px; margin-top:2px">Надёжность ●●●○○ · с нами 2 мес.</div>
-          </div>
+      <div id="rank-friends">
+        <button class="btn ghost" onclick="alert('Демо: ссылка-приглашение скопирована. Отправьте другу — он придёт в бота, и вы в одном рейтинге.')">＋ Пригласить друга</button>
+        <div style="height:12px"></div>
+        <div class="card" style="padding:6px 12px">
+          <div class="rrow"><div class="rn" style="color:var(--record)">1</div><div class="ava sm" style="background:#2f7d54">ИК</div><div style="flex:1"><b>Иван Крючков</b><div class="sub">47 кг · 128 рыб</div></div><div>🥇</div></div>
+          <div class="rrow me"><div class="rn">2</div><div class="ava sm">ВЫ</div><div style="flex:1"><b>Вы</b><div class="sub">47 кг · 128 рыб</div></div><div class="sub" style="font-size:12px">почти догнали!</div></div>
+          <div class="rrow"><div class="rn">3</div><div class="ava sm" style="background:#c67e2a">ОР</div><div style="flex:1"><b>Ольга Р.</b><div class="sub">31 кг · 96 рыб</div></div></div>
+          <div class="rrow"><div class="rn">4</div><div class="ava sm" style="background:#8a938f">МД</div><div style="flex:1"><b>Максим Д.</b><div class="sub">22 кг · 71 рыба</div></div></div>
         </div>
-        <div class="xpbar"><i></i></div>
-        <div class="muted" style="font-size:11.5px; margin-top:6px">640 / 1000 XP до 4 уровня</div>
+        <p class="sub" style="text-align:center;padding:0 12px">Соревнуйтесь с друзьями: по весу, по числу рыб и по рекордам. Видно, кто сколько поймал.</p>
       </div>
 
-      <div class="stats3">
-        <div class="stat"><b class="tnum">33</b><span>поездки</span></div>
-        <div class="stat"><b class="tnum">55%</b><span>с уловом</span></div>
-        <div class="stat"><b class="tnum">4.1</b><span>рекорд, кг</span></div>
-      </div>
-
-      <div class="eyebrow" style="margin:4px 2px 10px">Достижения</div>
-      <div class="card">
-        <div class="badges">
-          <div class="badge-a"><div class="ic">🥇</div><small>Первый улов</small></div>
-          <div class="badge-a"><div class="ic">🐊</div><small>Гроза щук</small></div>
-          <div class="badge-a"><div class="ic">🌙</div><small>Ночной клёв</small></div>
-          <div class="badge-a lock"><div class="ic">🏆</div><small>10 уловов подряд</small></div>
-          <div class="badge-a lock"><div class="ic">❄️</div><small>Зимняя рыбалка</small></div>
+      <div id="rank-all" style="display:none">
+        <div class="card" style="padding:6px 12px">
+          <div class="rrow"><div class="rn" style="color:var(--record)">1</div><div class="ava sm" style="background:#8a938f">СП</div><div style="flex:1"><b>Сергей П.</b><div class="sub">210 кг · рекорд 6.4 кг</div></div><div>🥇</div></div>
+          <div class="rrow"><div class="rn">2</div><div class="ava sm" style="background:#2f7d54">ИК</div><div style="flex:1"><b>Иван Крючков</b><div class="sub">180 кг</div></div><div>🥈</div></div>
+          <div class="rrow me"><div class="rn">128</div><div class="ava sm">ВЫ</div><div style="flex:1"><b>Вы</b><div class="sub">47 кг</div></div><div class="sub" style="font-size:12px">+3 ↑</div></div>
         </div>
-      </div>
-
-      <div class="eyebrow" style="margin:4px 2px 10px">Мои места (карта поездок)</div>
-      <div class="mapwrap" style="margin-bottom:14px">
-        <svg viewBox="0 0 360 150" aria-label="Мини-карта своих точек">
-          <rect width="360" height="150" fill="var(--surface-2)"/>
-          <path d="M-10,60 C80,40 120,90 200,70 C280,52 320,30 370,55 L370,150 L-10,150 Z" fill="url(#water)"/>
-          <g>
-            <circle cx="90" cy="80" r="7" fill="var(--good)"/>
-            <circle cx="150" cy="95" r="7" fill="var(--good)"/>
-            <circle cx="235" cy="70" r="7" fill="var(--amber)"/>
-            <circle cx="300" cy="60" r="7" fill="var(--good)"/>
-          </g>
-        </svg>
-      </div>
-
-      <div class="eyebrow" style="margin:4px 2px 10px">Дневник · последние</div>
-      <div class="card" style="padding:4px 14px">
-        <div class="hist"><div class="ic">🐊</div><div style="flex:1"><b>Щука 3.2 кг</b> · Блесна<div class="muted" style="font-size:12px">Зона B-3 · сегодня</div></div><span class="badge-catch">УЛОВ</span></div>
-        <div class="hist"><div class="ic">🐟</div><div style="flex:1"><b>Окунь ×5</b> · Мормышка<div class="muted" style="font-size:12px">Зона B-2 · вчера</div></div><span class="badge-catch">УЛОВ</span></div>
-        <div class="hist"><div class="ic">·</div><div style="flex:1"><b>Без улова</b> · Воблер<div class="muted" style="font-size:12px">Зона A-1 · 3 дня назад</div></div><span class="badge-miss">—</span></div>
+        <p class="sub" style="text-align:center;padding:0 12px">Общий рейтинг по области. Позже добавим фильтр по региону и водоёму.</p>
       </div>
     </section>
 
   </div>
 
-  <!-- Нижний лист: сводка зоны -->
-  <div class="sheet-bg" id="sheetbg" onclick="closeSheet()"></div>
-  <div class="sheet" id="sheet">
-    <div class="grabber"></div>
-    <div class="row" style="margin-bottom:10px">
-      <div style="font-size:24px">📊</div>
-      <div style="flex:1"><div style="font-weight:800; font-size:17px">Зона B-3</div>
-        <div class="muted" style="font-size:12.5px">Икшинское вдхр. · за 2 недели</div></div>
-      <span class="badge-catch">🔥 клюёт</span>
-    </div>
-    <div class="stats3" style="margin-bottom:14px">
-      <div class="stat"><b class="tnum">34</b><span>отчёта</span></div>
-      <div class="stat"><b class="tnum">71%</b><span>с уловом</span></div>
-      <div class="stat"><b class="tnum">18</b><span>рыбаков</span></div>
-    </div>
-    <div class="eyebrow" style="margin:2px 2px 9px">Чаще всего ловят</div>
-    <div class="chips">
-      <span class="chip on">🐊 Щука · 14</span><span class="chip">🐟 Окунь · 9</span><span class="chip">🎣 Судак · 5</span>
-    </div>
-    <div class="eyebrow" style="margin:6px 2px 9px">Что работает</div>
-    <div class="chips"><span class="chip on">Блесна</span><span class="chip">Мормышка</span><span class="chip">Воблер</span></div>
-    <div class="cta" onclick="closeSheet()">Понятно</div>
-  </div>
-
-  <!-- Нижнее меню -->
   <nav class="tabbar">
-    <div class="tab on" data-go="map"><span class="ic">🗺️</span>Карта</div>
-    <div class="tab" data-go="feed"><span class="ic">📰</span>Лента</div>
+    <div class="tab on" data-go="profile"><span class="ic">👤</span>Профиль</div>
+    <div class="tab" data-go="feed"><span class="ic">📋</span>Лента</div>
     <div class="tab center" data-go="report"><span class="fab">＋</span></div>
     <div class="tab" data-go="rank"><span class="ic">🏆</span>Рейтинг</div>
-    <div class="tab" data-go="profile"><span class="ic">👤</span>Профиль</div>
   </nav>
 </div>
 
-<p class="pitch" style="opacity:.8">
-  Что здесь можно потыкать: вкладки внизу · фильтры рыбы и «клюёт здесь» на карте ·
-  вид рыбы и наживку в отчёте · переключатель Поймал/Не клевало.
-</p>
+<p class="pitch" style="opacity:.85">Потыкать: вкладки внизу · в отчёте добавьте вид (＋ рыба), меняйте количество ±, вес, наживку, ⭐ рекорд ·
+переключатель Штуки/Килограммы · «Пригласить друга» в рейтинге.</p>
 
 <script>
-  var titles = {
-    map:     ["Карта клёва", "Зона Икшинское вдхр. · сегодня"],
-    feed:    ["Лента", "Уловы рыбаков рядом"],
-    report:  ["Новый отчёт", "Пара тапов — и готово"],
-    rank:    ["Рейтинг", "Кто больше и надёжнее"],
-    profile: ["Профиль", "Ваш прогресс и дневник"]
-  };
+  var titles={profile:"Мой профиль",feed:"Лента",report:"Записать улов",rank:"Рейтинг"};
   function go(name){
-    document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('active', s.dataset.screen===name); });
-    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t.dataset.go===name); });
-    document.getElementById('scr-title').textContent = titles[name][0];
-    document.getElementById('scr-sub').textContent = titles[name][1];
-    document.querySelector('.screens').scrollTop = 0;
+    document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('active',s.dataset.s===name);});
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.dataset.go===name);});
+    document.getElementById('ttl').textContent=titles[name];
+    document.querySelector('.screens').scrollTop=0;
   }
-  document.querySelectorAll('.tab').forEach(function(t){ t.addEventListener('click', function(){ go(t.dataset.go); }); });
+  document.querySelectorAll('.tab').forEach(function(t){t.addEventListener('click',function(){go(t.dataset.go);});});
 
-  document.querySelectorAll('.filters .fchip').forEach(function(c){
-    c.addEventListener('click', function(){
-      document.querySelectorAll('.filters .fchip').forEach(function(x){ x.classList.remove('on'); });
-      c.classList.add('on');
+  /* ── Отчёт: несколько видов ── */
+  var SPECIES=[["Щука","🐊"],["Окунь","🐟"],["Судак","🎣"],["Лещ","🐠"],["Плотва","🐟"],["Карась","🐟"],["Сом","🐡"],["Карп","🐟"]];
+  var BAITS=["Блесна","Воблер","Силикон","Червь","Мормышка","Живец","Кукуруза"];
+  var unit="шт";
+  var entries=[
+    {sp:"Щука",em:"🐊",qty:1,w:"3.2",bait:"Блесна",rec:true},
+    {sp:"Окунь",em:"🐟",qty:5,w:"",bait:"Мормышка",rec:false}
+  ];
+  function setUnit(u,el){unit=u;el.parentElement.querySelectorAll('.u').forEach(function(x){x.classList.remove('on');});el.classList.add('on');render();}
+  function addSp(sp,em){ if(entries.find(function(e){return e.sp===sp;}))return; entries.push({sp:sp,em:em,qty:1,w:"",bait:"",rec:false}); render(); }
+  function step(i,d){entries[i].qty=Math.max(1,entries[i].qty+d);render();}
+  function pickBait(i,b){entries[i].bait=b;render();}
+  function toggleRec(i){entries[i].rec=!entries[i].rec;render();}
+  function rm(i){entries.splice(i,1);render();}
+  function setW(i,v){entries[i].w=v;calcTotals();}
+  function render(){
+    var pk=document.getElementById('picker'); pk.innerHTML='';
+    SPECIES.forEach(function(s){ if(entries.find(function(e){return e.sp===s[0];}))return;
+      var c=document.createElement('div');c.className='achip';c.textContent=s[1]+' '+s[0];
+      c.onclick=function(){addSp(s[0],s[1]);}; pk.appendChild(c); });
+    var box=document.getElementById('entries'); box.innerHTML='';
+    entries.forEach(function(e,i){
+      var baits=BAITS.map(function(b){return '<span class="bchip'+(e.bait===b?' on':'')+'" onclick="pickBait('+i+',\''+b+'\')">'+b+'</span>';}).join('');
+      var d=document.createElement('div'); d.className='entry';
+      d.innerHTML=
+        '<div class="top"><span style="font-size:18px">'+e.em+'</span>'+
+        '<span class="fish">'+e.sp+'</span>'+
+        '<span class="star'+(e.rec?' on':'')+'" title="самая крупная" onclick="toggleRec('+i+')">⭐</span>'+
+        '<span class="rm" onclick="rm('+i+')">✕</span></div>'+
+        '<div class="row" style="margin-top:9px">'+
+          '<div class="stepper"><button onclick="step('+i+',-1)">−</button><span class="n">'+e.qty+'</span><button onclick="step('+i+',1)">＋</button></div>'+
+          '<input class="winput" placeholder="вес, кг (по желанию)" value="'+e.w+'" oninput="setW('+i+',this.value)">'+
+        '</div>'+
+        '<div class="baitrow">'+baits+'</div>';
+      box.appendChild(d);
     });
-  });
-  document.querySelectorAll('.chips .chip').forEach(function(c){
-    if (c.textContent.indexOf('Своё') > -1) return;
-    c.addEventListener('click', function(){
-      var group = c.parentElement;
-      group.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('on','star'); });
-      c.classList.add('on');
-    });
-  });
-  function pick(el, kind){
-    document.querySelectorAll('.toggle2 .tbtn').forEach(function(b){ b.classList.remove('on-good','on-miss'); });
-    el.classList.add(kind === 'good' ? 'on-good' : 'on-miss');
+    calcTotals();
   }
-  function seg(el){
-    el.parentElement.querySelectorAll('.s').forEach(function(x){ x.classList.remove('on'); });
-    el.classList.add('on');
+  function calcTotals(){
+    var n=entries.reduce(function(a,e){return a+e.qty;},0);
+    var kg=entries.reduce(function(a,e){return a+(parseFloat(e.w)||0);},0);
+    var big=entries.filter(function(e){return parseFloat(e.w)>0;}).sort(function(a,b){return b.w-a.w;})[0];
+    var t=document.getElementById('totals');
+    t.innerHTML='<b>Итого:</b> '+n+' шт'+(kg>0?' · '+kg.toFixed(1)+' кг':'')+
+      (big?' · 🥇 крупная: '+big.sp+' '+big.w+' кг':'')+
+      '<div class="sub" style="margin-top:4px">Учёт: '+(unit==='шт'?'в штуках':'в килограммах')+' · ⭐ отмечает рыбу на личный рекорд</div>';
   }
-  function openSheet(){ document.getElementById('sheet').classList.add('open'); document.getElementById('sheetbg').classList.add('open'); }
-  function closeSheet(){ document.getElementById('sheet').classList.remove('open'); document.getElementById('sheetbg').classList.remove('open'); }
+  render();
+
+  function rankTab(el,which){
+    el.parentElement.querySelectorAll('.t').forEach(function(x){x.classList.remove('on');});el.classList.add('on');
+    document.getElementById('rank-friends').style.display=which==='friends'?'':'none';
+    document.getElementById('rank-all').style.display=which==='all'?'':'none';
+  }
 </script>
